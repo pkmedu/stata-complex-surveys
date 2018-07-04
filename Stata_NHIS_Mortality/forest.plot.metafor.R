@@ -1,0 +1,11 @@
+library(metafor)
+data(dat.bcg)
+dat <- escalc(measure="RR", ai=tpos, bi=tneg, ci=cpos, di=cneg, data=dat.bcg)
+
+par(mfrow=c(1,2))
+par(mar=c(5,4,1,1))
+forest(dat$yi, dat$vi, annotate=FALSE, cex=.8, at=seq(-3,2,1), digits=1, xlim=c(-6,2))
+text(0, 15, "Figure 1", cex=.8, font=2)
+par(mar=c(5,3,1,2))
+forest(dat$yi, dat$vi, annotate=FALSE, slab=rep("",length(dat$yi)), cex=.8, at=seq(-3,2,1), digits=1, xlim=c(-5,3))
+text(0, 15, "Figure 2", cex=.8, font=2)

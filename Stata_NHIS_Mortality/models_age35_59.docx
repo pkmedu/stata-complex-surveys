@@ -1,0 +1,362 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  20 May 2014, 16:56:10
+
+. 
+. gen aa_age_grp=. if a_age >= 18 & a_age <=34
+(5485946 missing values generated)
+
+. replace aa_age_grp=1 if a_age >=35 & a_age <=59
+(2632391 real changes made)
+
+. replace aa_age_grp=2 if a_age >=60 & a_age <=74
+(844049 real changes made)
+
+. replace aa_age_grp=3 if a_age >=75 & a_age <=84
+(390866 real changes made)
+
+. replace aa_age_grp=. if a_age >=85
+(0 real changes made)
+
+. label define  aa_age_grp_v 1 "35-59 Yrs" 2 "60-74 Yrs" 3 "75-84 Yrs" 
+
+.      label values aa_age_grp aa_age_grp_v
+
+.          
+. 
+.          
+. generate chronic1p = xchronic
+(36714 missing values generated)
+
+. recode   chronic1p (2/3=1) (1=2)
+(chronic1p: 5449232 changes made)
+
+. 
+. label define  chronic1p_lab 1 " 1+ Condition" 2 "None"
+
+. label values  chronic1p chronic1p_lab
+
+. //tab1 xchronic chronic1p        
+.          
+. gen age_35_59= aa_age==1 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen age_60_74= aa_age==2 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen age_75_84= aa_age==3 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. 
+. gen mage_35_59= aa_age==1 & sex==1 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen mage_60_74= aa_age==2 & sex==1 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen mage_75_84= aa_age==3 & sex==1 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. 
+. gen fage_35_59= aa_age==1 & sex==2 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen fage_60_74= aa_age==2 & sex==2 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. gen fage_75_84= aa_age==3 & sex==2 if !missing(aa_age_grp)
+(1618640 missing values generated)
+
+. 
+. //table aa_age xspd2, by(xsmoke dead) contents(freq)
+. //table aa_age xspd2, by(chronic1p dead) contents(freq)
+. 
+. 
+. fvset base 2 xspd2 chronic1p racehisp bmicat
+
+. fvset base 3 xsmoke
+
+. 
+. local base_vars i.dur_cat i.sex i.xspd2
+
+. local base_smk i.dur_cat i.sex i.xspd2 i.xsmoke
+
+. local base_dis i.dur_cat i.sex i.xspd2 i.chronic1p 
+
+. local base_s_d i.dur_cat i.sex i.xspd2 i.xsmoke i.chronic1p 
+
+. local base_s_d_s  i.dur_cat i.sex i.xspd2 i.xsmoke i.chronic1p i.marital  i.educ_cat i.racehisp
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. 
+. capture noisily svy,subpop(age_35_59): cloglog dead `base_vars', eform nolog
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     3867306
+Number of PSUs     =       678                Population size    =  3126764081
+                                              Subpop. no. of obs =     2632391
+                                              Subpop. size       =  2207963432
+                                              Design df          =         339
+                                              F(   5,    335)    =       69.22
+                                              Prob > F           =      0.0000
+
+---------------------------------------------------------------------------------------
+                      |             Linearized
+                 dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+----------------------+----------------------------------------------------------------
+              dur_cat |
+       1.75-3.00 Yrs  |   .9718402   .0642388    -0.43   0.666     .8533529    1.106779
+       3.25-5.00 Yrs  |   .9178399   .0627192    -1.25   0.210     .8024038    1.049883
+       5.25-9.75 Yrs  |   1.053362   .0723074     0.76   0.449     .9203185    1.205639
+                      |
+                  sex |
+              Female  |   .6058854   .0286656   -10.59   0.000     .5520448    .6649772
+                      |
+                xspd2 |
+Serious Psy Distress  |   3.334962   .2585889    15.53   0.000      2.86321     3.88444
+                      |
+                _cons |   .0010092   .0000522  -133.50   0.000     .0009116    .0011172
+---------------------------------------------------------------------------------------
+
+. est store m1 
+
+. 
+. capture noisily svy,subpop(age_35_59): cloglog dead `base_smk', eform nolog
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     3856992
+Number of PSUs     =       678                Population size    =  3118483439
+                                              Subpop. no. of obs =     2622077
+                                              Subpop. size       =  2199682789
+                                              Design df          =         339
+                                              F(   7,    333)    =       79.49
+                                              Prob > F           =      0.0000
+
+---------------------------------------------------------------------------------------
+                      |             Linearized
+                 dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+----------------------+----------------------------------------------------------------
+              dur_cat |
+       1.75-3.00 Yrs  |   .9656133   .0638203    -0.53   0.597     .8478972    1.099672
+       3.25-5.00 Yrs  |   .9129892    .062244    -1.34   0.183     .7984103    1.044011
+       5.25-9.75 Yrs  |   1.054554   .0724414     0.77   0.440     .9212704    1.207121
+                      |
+                  sex |
+              Female  |   .6465464   .0304438    -9.26   0.000     .5893533    .7092896
+                      |
+                xspd2 |
+Serious Psy Distress  |   2.751545   .2184201    12.75   0.000     2.353777    3.216531
+                      |
+               xsmoke |
+      Current Smoker  |   2.424306    .139588    15.38   0.000     2.164716    2.715026
+       Former Smoker  |   1.616169   .1115524     6.96   0.000      1.41099    1.851184
+                      |
+                _cons |   .0006524   .0000382  -125.19   0.000     .0005814    .0007321
+---------------------------------------------------------------------------------------
+
+. est store m2
+
+. 
+. capture noisily svy,subpop(age_35_59): cloglog dead `base_dis', eform nolog
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     3854263
+Number of PSUs     =       678                Population size    =  3116412104
+                                              Subpop. no. of obs =     2619348
+                                              Subpop. size       =  2197611455
+                                              Design df          =         339
+                                              F(   6,    334)    =      157.44
+                                              Prob > F           =      0.0000
+
+---------------------------------------------------------------------------------------
+                      |             Linearized
+                 dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+----------------------+----------------------------------------------------------------
+              dur_cat |
+       1.75-3.00 Yrs  |   1.001093   .0666738     0.02   0.987     .8781738    1.141217
+       3.25-5.00 Yrs  |    .974333   .0666071    -0.38   0.704     .8517445    1.114565
+       5.25-9.75 Yrs  |   1.157388   .0787773     2.15   0.032     1.012359    1.323193
+                      |
+                  sex |
+              Female  |   .5730947   .0271947   -11.73   0.000     .5220235    .6291623
+                      |
+                xspd2 |
+Serious Psy Distress  |   2.387583   .1928357    10.78   0.000     2.036873    2.798678
+                      |
+            chronic1p |
+        1+ Condition  |   3.177246   .1519104    24.18   0.000     2.892061    3.490553
+                      |
+                _cons |   .0005791   .0000329  -131.11   0.000     .0005178    .0006476
+---------------------------------------------------------------------------------------
+
+. est store m3 
+
+. 
+. capture noisily svy,subpop(age_35_59): cloglog dead `base_s_d', eform nolog
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     3844097
+Number of PSUs     =       678                Population size    =  3108222236
+                                              Subpop. no. of obs =     2609182
+                                              Subpop. size       =  2189421586
+                                              Design df          =         339
+                                              F(   8,    332)    =      148.44
+                                              Prob > F           =      0.0000
+
+---------------------------------------------------------------------------------------
+                      |             Linearized
+                 dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+----------------------+----------------------------------------------------------------
+              dur_cat |
+       1.75-3.00 Yrs  |   .9915654   .0660679    -0.13   0.899     .8697666     1.13042
+       3.25-5.00 Yrs  |    .964216   .0656349    -0.54   0.593      .843383    1.102361
+       5.25-9.75 Yrs  |   1.149762   .0782873     2.05   0.041     1.005639     1.31454
+                      |
+                  sex |
+              Female  |   .6044352   .0285233   -10.67   0.000     .5508554    .6632265
+                      |
+                xspd2 |
+Serious Psy Distress  |   1.992794   .1645685     8.35   0.000     1.694014    2.344272
+                      |
+               xsmoke |
+      Current Smoker  |   2.299592   .1339705    14.29   0.000     2.050612    2.578802
+       Former Smoker  |   1.442084   .1006216     5.25   0.000     1.257144    1.654231
+                      |
+            chronic1p |
+        1+ Condition  |   3.072247   .1473038    23.41   0.000     2.795746    3.376095
+                      |
+                _cons |   .0004016   .0000248  -126.71   0.000     .0003556    .0004534
+---------------------------------------------------------------------------------------
+
+. est store m4
+
+.  
+. capture noisily svy,subpop(age_35_59): cloglog dead `base_s_d_s', eform nolog
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     3827243
+Number of PSUs     =       678                Population size    =  3095529216
+                                              Subpop. no. of obs =     2592328
+                                              Subpop. size       =  2176728566
+                                              Design df          =         339
+                                              F(  16,    324)    =       99.60
+                                              Prob > F           =      0.0000
+
+---------------------------------------------------------------------------------------
+                      |             Linearized
+                 dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+----------------------+----------------------------------------------------------------
+              dur_cat |
+       1.75-3.00 Yrs  |   1.001903   .0669998     0.03   0.977     .8784151    1.142751
+       3.25-5.00 Yrs  |   .9622554   .0656653    -0.56   0.573     .8413861    1.100488
+       5.25-9.75 Yrs  |    1.15844   .0796306     2.14   0.033     1.011935    1.326155
+                      |
+                  sex |
+              Female  |   .5787156   .0279981   -11.31   0.000     .5261829     .636493
+                      |
+                xspd2 |
+Serious Psy Distress  |   1.595386   .1298616     5.74   0.000      1.35935    1.872408
+                      |
+               xsmoke |
+      Current Smoker  |   1.961788   .1150936    11.49   0.000     1.747974    2.201755
+       Former Smoker  |   1.480845   .1038309     5.60   0.000     1.290069    1.699833
+                      |
+            chronic1p |
+        1+ Condition  |   2.952256   .1408061    22.70   0.000     2.687887    3.242627
+                      |
+              marital |
+             Div/Sep  |   1.732355   .0902847    10.54   0.000     1.563565    1.919365
+               Widow  |   2.273347   .3163119     5.90   0.000     1.729043    2.988999
+       Never Married  |   1.727365   .1033942     9.13   0.000     1.535507    1.943197
+                      |
+             educ_cat |
+    High Scool Grad.  |   .6629595   .0343978    -7.92   0.000     .5986375    .7341927
+ College Grad/Higher  |   .4698066   .0364714    -9.73   0.000     .4032765    .5473124
+                      |
+             racehisp |
+            Hispanic  |   .9477974   .0749325    -0.68   0.498     .8112948    1.107267
+            NH Black  |    1.49285   .0870282     6.87   0.000     1.331117    1.674234
+            NH Other  |   .7051073   .1169058    -2.11   0.036     .5088872    .9769873
+                      |
+                _cons |   .0005273   .0000438   -90.86   0.000     .0004478    .0006209
+---------------------------------------------------------------------------------------
+
+. est store m5 
+
+.     
+. est table m1 m2  m3 m4 m5, b(%5.2f) star (.05 .01 .001) stats (N_sub) stfmt (%11.0gc) eform                                     
+
+---------------------------------------------------------------------------------------------------
+    Variable |       m1               m2               m3               m4               m5        
+-------------+-------------------------------------------------------------------------------------
+     dur_cat |
+1.75-3.00..  |        0.97             0.97             1.00             0.99             1.00     
+3.25-5.00..  |        0.92             0.91             0.97             0.96             0.96     
+5.25-9.75..  |        1.05             1.05             1.16*            1.15*            1.16*    
+             |
+         sex |
+     Female  |        0.61***          0.65***          0.57***          0.60***          0.58***  
+             |
+       xspd2 |
+Serious P..  |        3.33***          2.75***          2.39***          1.99***          1.60***  
+             |
+      xsmoke |
+Current S..  |                         2.42***                           2.30***          1.96***  
+Former Sm..  |                         1.62***                           1.44***          1.48***  
+             |
+   chronic1p |
+ 1+ Condi..  |                                          3.18***          3.07***          2.95***  
+             |
+     marital |
+    Div/Sep  |                                                                            1.73***  
+      Widow  |                                                                            2.27***  
+Never Mar..  |                                                                            1.73***  
+             |
+    educ_cat |
+High Scoo..  |                                                                            0.66***  
+College G..  |                                                                            0.47***  
+             |
+    racehisp |
+   Hispanic  |                                                                            0.95     
+             |
+    racehisp |
+   NH Black  |                                                                            1.49***  
+   NH Other  |                                                                            0.71*    
+             |
+       _cons |        0.00***          0.00***          0.00***          0.00***          0.00***  
+-------------+-------------------------------------------------------------------------------------
+       N_sub |   2,632,391        2,622,077        2,619,348        2,609,182        2,592,328     
+---------------------------------------------------------------------------------------------------
+                                                              legend: * p<.05; ** p<.01; *** p<.001
+
+. log close age35_59
+log age35_59 not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. exit, clear

@@ -1,0 +1,1209 @@
+
+  ___  ____  ____  ____  ____ (R)
+ /__    /   ____/   /   ____/
+___/   /   /___/   /   /___/   13.1   Copyright 1985-2013 StataCorp LP
+  Statistics/Data Analysis            StataCorp
+                                      4905 Lakeway Drive
+     MP - Parallel Edition            College Station, Texas 77845 USA
+                                      800-STATA-PC        http://www.stata.com
+                                      979-696-4600        stata@stata.com
+                                      979-696-4601 (fax)
+
+Single-user 2-core Stata perpetual license:
+       Serial number:  501306221654
+         Licensed to:  Pradip Muhuri
+                       Samhsa
+
+Notes:
+      1.  (/v# option or -set maxvar-) 5000 maximum variables
+      2.  New update available; type -update all-
+
+. do "E:\Stata_mortality\cloglog_attained_age_stratified_051514.do"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the
+    fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 19:20:34
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. foreach x of numlist 1  2 3 4 5  {
+  2. capture noisily xi: svy,subpop(if za_age_grp ==`x'): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+  3.                                                            
+. capture la var _Isex_2 "Female" 
+  4. capture la var _Ixspd2_1 "Serious Psy Distress"
+  5. capture la var _Ixsmoke_1 "Current Smoker"
+  6. capture la var _Ixsmoke_2 "Former Smoker"
+  7. capture la var _Ibmicat_1 "Underweight"
+  8. capture la var _Ibmicat_3 "Overweight"
+  9. capture la var _Ibmicat_4 "Obese"
+ 10. capture la var _Ixchronic_2 "1 Condition"
+ 11. capture la var _Ixchronic_3 "2+ Conditions"
+ 12. capture la var _Ixchronic_3 "2+ Conditions"
+ 13. capture la var _Imarital_2 "Div/Sep" 
+ 14. capture la var _Imarital_3 "Widow" 
+ 15. capture la var _Imarital_4 "Never Married" 
+ 16. capture la var _Iracehisp_1 "Hispanic"
+ 17. capture la var _Iracehisp_3 "NH Black" 
+ 18. capture la var _Iracehisp_4 "NH Other"
+ 19. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+ 20. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+ 21. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+ 22. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+ 23. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+ 24. est store m`x'
+ 25. } 
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+last estimation results not found, nothing to store
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "E:\Stata_mortality\cloglog_attained_age_stratified_051514.do"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 19:21:46
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. foreach x of numlist 1  2 3 4 5  {
+  2. capture noisily xi: svy,subpop(if za_age_grp ==`x'): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+  3.                                                            
+. capture la var _Isex_2 "Female" 
+  4. capture la var _Ixspd2_1 "Serious Psy Distress"
+  5. capture la var _Ixsmoke_1 "Current Smoker"
+  6. capture la var _Ixsmoke_2 "Former Smoker"
+  7. capture la var _Ibmicat_1 "Underweight"
+  8. capture la var _Ibmicat_3 "Overweight"
+  9. capture la var _Ibmicat_4 "Obese"
+ 10. capture la var _Ixchronic_2 "1 Condition"
+ 11. capture la var _Ixchronic_3 "2+ Conditions"
+ 12. capture la var _Ixchronic_3 "2+ Conditions"
+ 13. capture la var _Imarital_2 "Div/Sep" 
+ 14. capture la var _Imarital_3 "Widow" 
+ 15. capture la var _Imarital_4 "Never Married" 
+ 16. capture la var _Iracehisp_1 "Hispanic"
+ 17. capture la var _Iracehisp_3 "NH Black" 
+ 18. capture la var _Iracehisp_4 "NH Other"
+ 19. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+ 20. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+ 21. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+ 22. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+ 23. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+ 24. est store m`x'
+ 25. } 
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+invalid subpop() option
+last estimation results not found, nothing to store
+r(301);
+
+end of do-file
+
+r(301);
+
+. do "C:\Users\PRADIP~1.MUH\AppData\Local\Temp\1\STD00000000.tmp"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 19:34:00
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. capture noisily xi: svy,subpop(if a_age>=35 & a_age<=54): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     5393793
+Number of PSUs     =       678                Population size    =  4447658710
+                                              Subpop. no. of obs =     2114357
+                                              Subpop. size       =  1774922344
+                                              Design df          =         339
+                                              F(  20,    320)    =       67.35
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |    .506394   .0313269   -11.00   0.000     .4483759    .5719193
+   _Ixspd2_1 |   1.308945   .1446799     2.44   0.015     1.053172    1.626834
+  _Ixsmoke_1 |   1.821948   .1291716     8.46   0.000      1.58479    2.094596
+  _Ixsmoke_2 |   1.381915   .1237051     3.61   0.000     1.158807    1.647978
+_Ixchronic_2 |   2.254196   .1517124    12.08   0.000     1.974689    2.573267
+_Ixchronic_3 |   4.726989   .3628449    20.24   0.000     4.064546    5.497397
+  _Ibmicat_1 |   1.863239    .231036     5.02   0.000      1.45997    2.377898
+  _Ibmicat_3 |   .9074555   .0689568    -1.28   0.202     .7814685    1.053754
+  _Ibmicat_4 |   .9094039   .0744145    -1.16   0.247     .7742038    1.068214
+ _Imarital_2 |    1.74273   .1200738     8.06   0.000     1.521851    1.995666
+ _Imarital_3 |   2.057614   .3751966     3.96   0.000     1.437457    2.945322
+ _Imarital_4 |   1.767967    .122486     8.22   0.000     1.542734    2.026083
+_Iracehisp_1 |   1.031164   .0906427     0.35   0.727     .8674338    1.225799
+_Iracehisp_3 |   1.596911   .1060829     7.05   0.000     1.401306    1.819821
+_Iracehisp_4 |   .8441026   .1637115    -0.87   0.383     .5763886    1.236161
+_Ieduc_cat_2 |   .7212899    .048485    -4.86   0.000     .6319566    .8232514
+_Ieduc_cat_3 |   .4728879   .0492034    -7.20   0.000     .3853668    .5802859
+ _Idur_cat_2 |   .9502758   .0788746    -0.61   0.539     .8071333    1.118804
+ _Idur_cat_3 |   .9876145   .0811014    -0.15   0.879     .8403064    1.160746
+ _Idur_cat_4 |   1.162249   .0957321     1.83   0.069     .9884078    1.366665
+       _cons |   .0004881   .0000549   -67.77   0.000     .0003912     .000609
+------------------------------------------------------------------------------
+
+.                                                            
+. capture la var _Isex_2 "Female" 
+
+. capture la var _Ixspd2_1 "Serious Psy Distress"
+
+. capture la var _Ixsmoke_1 "Current Smoker"
+
+. capture la var _Ixsmoke_2 "Former Smoker"
+
+. capture la var _Ibmicat_1 "Underweight"
+
+. capture la var _Ibmicat_3 "Overweight"
+
+. capture la var _Ibmicat_4 "Obese"
+
+. capture la var _Ixchronic_2 "1 Condition"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Imarital_2 "Div/Sep" 
+
+. capture la var _Imarital_3 "Widow" 
+
+. capture la var _Imarital_4 "Never Married" 
+
+. capture la var _Iracehisp_1 "Hispanic"
+
+. capture la var _Iracehisp_3 "NH Black" 
+
+. capture la var _Iracehisp_4 "NH Other"
+
+. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+
+. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+
+. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+
+. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+
+. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+
+. est store m`x'
+
+. 
+. log close cloglog
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ closed on:  15 May 2014, 19:38:59
+
+
+. 
+. 
+. 
+end of do-file
+
+. do "C:\Users\PRADIP~1.MUH\AppData\Local\Temp\1\STD00000000.tmp"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 19:47:33
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. capture noisily xi: svy,subpop(if a_age>=55 & a_age<=74): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     5425918
+Number of PSUs     =       678                Population size    =  4476129301
+                                              Subpop. no. of obs =     1195759
+                                              Subpop. size       = 948820586.5
+                                              Design df          =         339
+                                              F(  20,    320)    =      140.44
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .5522731   .0208886   -15.70   0.000     .5126767    .5949277
+   _Ixspd2_1 |    1.31173   .0946285     3.76   0.000       1.1382    1.511717
+  _Ixsmoke_1 |   2.030866   .0932339    15.43   0.000     1.855513    2.222791
+  _Ixsmoke_2 |   1.375392   .0641078     6.84   0.000       1.2549    1.507452
+_Ixchronic_2 |   1.742195   .0885068    10.93   0.000     1.576519    1.925282
+_Ixchronic_3 |    3.95502   .1893134    28.73   0.000     3.599636     4.34549
+  _Ibmicat_1 |   1.837995   .1227416     9.11   0.000     1.611748       2.096
+  _Ibmicat_3 |   .7366926   .0330786    -6.81   0.000      .674418    .8047175
+  _Ibmicat_4 |   .7502146   .0350973    -6.14   0.000       .68426    .8225265
+ _Imarital_2 |   1.299715   .0560494     6.08   0.000     1.194013    1.414774
+ _Imarital_3 |   1.756285   .0884157    11.19   0.000     1.590706      1.9391
+ _Imarital_4 |   1.600586   .1059702     7.10   0.000     1.405147     1.82321
+_Iracehisp_1 |   .9064096   .0594669    -1.50   0.135     .7966721    1.031263
+_Iracehisp_3 |    1.24805    .062268     4.44   0.000     1.131388    1.376742
+_Iracehisp_4 |   .6643189   .0833419    -3.26   0.001     .5190472    .8502495
+_Ieduc_cat_2 |   .7703309   .0270523    -7.43   0.000     .7189155    .8254234
+_Ieduc_cat_3 |   .5279755   .0308881   -10.92   0.000     .4705844    .5923658
+ _Idur_cat_2 |   1.038313   .0535874     0.73   0.467     .9380808    1.149254
+ _Idur_cat_3 |   1.062018   .0519279     1.23   0.219     .9646343    1.169232
+ _Idur_cat_4 |   1.130529   .0588433     2.36   0.019     1.020513    1.252405
+       _cons |   .0020768   .0001579   -81.22   0.000     .0017883    .0024119
+------------------------------------------------------------------------------
+
+.                                                            
+. capture la var _Isex_2 "Female" 
+
+. capture la var _Ixspd2_1 "Serious Psy Distress"
+
+. capture la var _Ixsmoke_1 "Current Smoker"
+
+. capture la var _Ixsmoke_2 "Former Smoker"
+
+. capture la var _Ibmicat_1 "Underweight"
+
+. capture la var _Ibmicat_3 "Overweight"
+
+. capture la var _Ibmicat_4 "Obese"
+
+. capture la var _Ixchronic_2 "1 Condition"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Imarital_2 "Div/Sep" 
+
+. capture la var _Imarital_3 "Widow" 
+
+. capture la var _Imarital_4 "Never Married" 
+
+. capture la var _Iracehisp_1 "Hispanic"
+
+. capture la var _Iracehisp_3 "NH Black" 
+
+. capture la var _Iracehisp_4 "NH Other"
+
+. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+
+. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+
+. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+
+. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+
+. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+
+. est store m`x'
+
+. 
+. log close cloglog
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ closed on:  15 May 2014, 19:52:16
+
+
+. 
+. 
+. 
+end of do-file
+
+. do "C:\Users\PRADIP~1.MUH\AppData\Local\Temp\1\STD00000000.tmp"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 20:10:56
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. capture noisily xi: svy,subpop(if a_age>=75 & a_age<=84): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       339                Number of obs      =     5466688
+Number of PSUs     =       678                Population size    =  4509702226
+                                              Subpop. no. of obs =      371608
+                                              Subpop. size       = 254539357.6
+                                              Design df          =         339
+                                              F(  20,    320)    =       70.49
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .6258492    .023137   -12.68   0.000     .5819543    .6730549
+   _Ixspd2_1 |   1.538132   .1268421     5.22   0.000     1.307819    1.809003
+  _Ixsmoke_1 |   2.019197   .1018429    13.93   0.000      1.82849    2.229795
+  _Ixsmoke_2 |   1.418819   .0540643     9.18   0.000     1.316363    1.529249
+_Ixchronic_2 |   1.383001   .0777725     5.77   0.000      1.23818    1.544759
+_Ixchronic_3 |   2.395508   .1175823    17.80   0.000      2.17504    2.638324
+  _Ibmicat_1 |   1.843201   .1104968    10.20   0.000     1.638181     2.07388
+  _Ibmicat_3 |    .712928   .0282184    -8.55   0.000     .6595285     .770651
+  _Ibmicat_4 |   .8282754   .0429223    -3.64   0.000     .7480082    .9171559
+ _Imarital_2 |   1.246638   .0738712     3.72   0.000     1.109483    1.400749
+ _Imarital_3 |   1.304778   .0494659     7.02   0.000     1.211018    1.405796
+ _Imarital_4 |     1.4616   .1117683     4.96   0.000     1.257489    1.698842
+_Iracehisp_1 |   .7943321   .0546693    -3.35   0.001     .6937595    .9094845
+_Iracehisp_3 |   1.069364   .0627569     1.14   0.254     .9527801    1.200213
+_Iracehisp_4 |   .7144142   .1129358    -2.13   0.034     .5234902    .9749708
+_Ieduc_cat_2 |   .7922313   .0293392    -6.29   0.000     .7365734    .8520949
+_Ieduc_cat_3 |    .647241   .0375953    -7.49   0.000     .5773597    .7255805
+ _Idur_cat_2 |   1.195644   .0591055     3.61   0.000     1.084858    1.317744
+ _Idur_cat_3 |   1.229671   .0615208     4.13   0.000     1.114424    1.356836
+ _Idur_cat_4 |   1.339975   .0674624     5.81   0.000     1.213636    1.479466
+       _cons |   .0072096   .0005699   -62.40   0.000     .0061715    .0084224
+------------------------------------------------------------------------------
+
+.                                                            
+. capture la var _Isex_2 "Female" 
+
+. capture la var _Ixspd2_1 "Serious Psy Distress"
+
+. capture la var _Ixsmoke_1 "Current Smoker"
+
+. capture la var _Ixsmoke_2 "Former Smoker"
+
+. capture la var _Ibmicat_1 "Underweight"
+
+. capture la var _Ibmicat_3 "Overweight"
+
+. capture la var _Ibmicat_4 "Obese"
+
+. capture la var _Ixchronic_2 "1 Condition"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Ixchronic_3 "2+ Conditions"
+
+. capture la var _Imarital_2 "Div/Sep" 
+
+. capture la var _Imarital_3 "Widow" 
+
+. capture la var _Imarital_4 "Never Married" 
+
+. capture la var _Iracehisp_1 "Hispanic"
+
+. capture la var _Iracehisp_3 "NH Black" 
+
+. capture la var _Iracehisp_4 "NH Other"
+
+. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+
+. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+
+. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+
+. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+
+. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+
+. est store m`x'
+
+. 
+. log close cloglog
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ closed on:  15 May 2014, 20:15:43
+
+
+. 
+. 
+. 
+end of do-file
+
+. do "E:\Stata_mortality\cloglog_attained_age_stratified_051514.do"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 20:40:55
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. 
+. 
+. gen aa_age_grp=. if a_age >= 18 & a_age <=34
+(5485946 missing values generated)
+
+. replace aa_age_grp=1 if a_age >=35 & a_age <=59
+(2632391 real changes made)
+
+. replace aa_age_grp=2 if a_age >=60 & a_age <=74
+(844049 real changes made)
+
+. replace aa_age_grp=3 if a_age >=75 & a_age <=84
+(390866 real changes made)
+
+. replace aa_age_grp=. if a_age >=85
+(0 real changes made)
+
+. label define  aa_age_grp_v 1 "35-59 Yrs" 2 "60-74 Yrs" 3 "75-84 Yrs" 
+
+.      label values aa_age_grp aa_age_grp_v
+
+. 
+. 
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. foreach x of numlist 1  2 3  {
+  2. capture noisily xi: svy,subpop(if aa_age_grp ==`x' & xspd2==1): cloglog dead i.sex ///
+>                            i.xspd2 i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+  3.                                                            
+. capture la var _Isex_2 "Female" 
+  4. //capture la var _Ixspd2_1 "Serious Psy Distress"
+. capture la var _Ixsmoke_1 "Current Smoker"
+  5. capture la var _Ixsmoke_2 "Former Smoker"
+  6. capture la var _Ibmicat_1 "Underweight"
+  7. capture la var _Ibmicat_3 "Overweight"
+  8. capture la var _Ibmicat_4 "Obese"
+  9. capture la var _Ixchronic_2 "1 Condition"
+ 10. capture la var _Ixchronic_3 "2+ Conditions"
+ 11. capture la var _Ixchronic_3 "2+ Conditions"
+ 12. capture la var _Imarital_2 "Div/Sep" 
+ 13. capture la var _Imarital_3 "Widow" 
+ 14. capture la var _Imarital_4 "Never Married" 
+ 15. capture la var _Iracehisp_1 "Hispanic"
+ 16. capture la var _Iracehisp_3 "NH Black" 
+ 17. capture la var _Iracehisp_4 "NH Other"
+ 18. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+ 19. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+ 20. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+ 21. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+ 22. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+ 23. 
+. est store m`x'
+ 24. } 
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       338                Number of obs      =     5468892
+Number of PSUs     =       676                Population size    =  4507994142
+                                              Subpop. no. of obs =       97831
+                                              Subpop. size       = 68981082.58
+                                              Design df          =         338
+                                              F(  19,    320)    =        6.80
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .5035958   .0716812    -4.82   0.000     .3806165    .6663103
+   _Ixspd2_1 |          1  (omitted)
+  _Ixsmoke_1 |   1.455584   .2825689     1.93   0.054      .993578     2.13242
+  _Ixsmoke_2 |   1.429912   .3637224     1.41   0.161     .8669895    2.358332
+_Ixchronic_2 |   1.865927   .4203087     2.77   0.006     1.198033    2.906169
+_Ixchronic_3 |   3.523829   .7194688     6.17   0.000     2.358297    5.265399
+  _Ibmicat_1 |   2.004987   .5068238     2.75   0.006     1.219468    3.296499
+  _Ibmicat_3 |   .8392556   .1706044    -0.86   0.389     .5626518     1.25184
+  _Ibmicat_4 |   .6930892   .1426714    -1.78   0.076      .462318    1.039052
+ _Imarital_2 |   2.178089   .3701934     4.58   0.000     1.559134    3.042761
+ _Imarital_3 |   2.625331   .8088844     3.13   0.002     1.432122    4.812693
+ _Imarital_4 |   1.948759    .458586     2.84   0.005     1.226682    3.095883
+_Iracehisp_1 |   .8062788   .1901634    -0.91   0.362     .5069968    1.282228
+_Iracehisp_3 |   .7697401   .1665865    -1.21   0.227     .5028816    1.178209
+_Iracehisp_4 |   .1880016    .124835    -2.52   0.012     .0509241    .6940639
+_Ieduc_cat_2 |   .9173251   .1450366    -0.55   0.586      .672137    1.251955
+_Ieduc_cat_3 |   .4277978   .1583297    -2.29   0.022     .2065729    .8859389
+ _Idur_cat_2 |   .7041397   .1550244    -1.59   0.112     .4566501    1.085761
+ _Idur_cat_3 |   .9894509   .1966741    -0.05   0.957     .6692557    1.462839
+ _Idur_cat_4 |   .8815604   .1754441    -0.63   0.527     .5959928    1.303956
+       _cons |   .0012899   .0004468   -19.21   0.000     .0006526    .0025494
+------------------------------------------------------------------------------
+Note: 1 stratum omitted because it contains no subpopulation members.
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xspd2           _Ixspd2_1-2         (naturally coded; _Ixspd2_2 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+. est table m1 m2 m3, label  b(%5.2f) ///
+>   star (.05 .01 .001) stats (N_sub) stfmt (%11.0gc) eform   
+option label not allowed
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "E:\Stata_mortality\cloglog_attained_age_stratified_051514.do"
+
+. 
+. capture log close cloglog
+
+. //clolog_attained_age_duration.do
+. clear
+
+. clear matrix
+
+. set mem 1100m
+set memory ignored.
+    Memory no longer needs to be set in modern Statas; memory adjustments are performed on the fly automatically.
+
+. set more off
+
+. set linesize 255
+
+. use "E:\SASDATAMH\expand_short_data.dta"
+
+. log using "E:\SASDATAMH\cloglog.log", name (cloglog) replace
+
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ opened on:  15 May 2014, 20:51:29
+
+. 
+. tab dur_cat
+
+      dur_cat |      Freq.     Percent        Cum.
+--------------+-----------------------------------
+   <=1.50 Yrs |  1,423,806       25.95       25.95
+1.75-3.00 Yrs |  1,328,166       24.21       50.16
+3.25-5.00 Yrs |  1,367,442       24.93       75.09
+5.25-9.75 Yrs |  1,366,532       24.91      100.00
+--------------+-----------------------------------
+        Total |  5,485,946      100.00
+
+. 
+. 
+. gen aa_age_grp=. if a_age >= 18 & a_age <=34
+(5485946 missing values generated)
+
+. replace aa_age_grp=1 if a_age >=35 & a_age <=59
+(2632391 real changes made)
+
+. replace aa_age_grp=2 if a_age >=60 & a_age <=74
+(844049 real changes made)
+
+. replace aa_age_grp=3 if a_age >=75 & a_age <=84
+(390866 real changes made)
+
+. replace aa_age_grp=. if a_age >=85
+(0 real changes made)
+
+. label define  aa_age_grp_v 1 "35-59 Yrs" 2 "60-74 Yrs" 3 "75-84 Yrs" 
+
+.      label values aa_age_grp aa_age_grp_v
+
+. 
+. 
+. char xspd2 [omit] 2
+
+. char xsmoke [omit] 3
+
+. char racehisp [omit] 2
+
+. char bmicat [omit] 2
+
+. 
+. svyset psu [pweight=wt8], strata (stratum) vce(linearized) singleunit(missing)
+
+      pweight: wt8
+          VCE: linearized
+  Single unit: missing
+     Strata 1: stratum
+         SU 1: psu
+        FPC 1: <zero>
+
+. 
+. foreach x of numlist 1  2 3  {
+  2. capture noisily xi: svy,subpop(if aa_age_grp ==`x' & xspd2==1): cloglog dead i.sex ///
+>                            i.xsmoke ///
+>                                                    i.xchronic  i.bmicat ///
+>                                                    i.marital ///
+>                            i.racehisp i.educ_cat  /// 
+>                                                     i.dur_cat ,eform nolog
+  3.                                                            
+. capture la var _Isex_2 "Female" 
+  4. //capture la var _Ixspd2_1 "Serious Psy Distress"
+. capture la var _Ixsmoke_1 "Current Smoker"
+  5. capture la var _Ixsmoke_2 "Former Smoker"
+  6. capture la var _Ibmicat_1 "Underweight"
+  7. capture la var _Ibmicat_3 "Overweight"
+  8. capture la var _Ibmicat_4 "Obese"
+  9. capture la var _Ixchronic_2 "1 Condition"
+ 10. capture la var _Ixchronic_3 "2+ Conditions"
+ 11. capture la var _Ixchronic_3 "2+ Conditions"
+ 12. capture la var _Imarital_2 "Div/Sep" 
+ 13. capture la var _Imarital_3 "Widow" 
+ 14. capture la var _Imarital_4 "Never Married" 
+ 15. capture la var _Iracehisp_1 "Hispanic"
+ 16. capture la var _Iracehisp_3 "NH Black" 
+ 17. capture la var _Iracehisp_4 "NH Other"
+ 18. capture la var _Ieduc_cat_2 "Hi Sch Grad"                                                                              
+ 19. capture la var _Ieduc_cat_3 "College Grad"                                                                              
+ 20. capture la var _Idur_cat_2 "SurvDur 1.75-3.00 Yrs"
+ 21. capture la var _Idur_cat_3 "SurvDur 3.25-5.00 Yrs"
+ 22. capture la var _Idur_cat_4 "SurvDur 5.25-9.75 Yrs"
+ 23. 
+. est store m`x'
+ 24. } 
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       338                Number of obs      =     5468892
+Number of PSUs     =       676                Population size    =  4507994142
+                                              Subpop. no. of obs =       97831
+                                              Subpop. size       = 68981082.58
+                                              Design df          =         338
+                                              F(  19,    320)    =        6.80
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .5035958   .0716812    -4.82   0.000     .3806165    .6663103
+  _Ixsmoke_1 |   1.455584   .2825689     1.93   0.054      .993578     2.13242
+  _Ixsmoke_2 |   1.429912   .3637224     1.41   0.161     .8669895    2.358332
+_Ixchronic_2 |   1.865927   .4203087     2.77   0.006     1.198033    2.906169
+_Ixchronic_3 |   3.523829   .7194688     6.17   0.000     2.358297    5.265399
+  _Ibmicat_1 |   2.004987   .5068238     2.75   0.006     1.219468    3.296499
+  _Ibmicat_3 |   .8392556   .1706044    -0.86   0.389     .5626518     1.25184
+  _Ibmicat_4 |   .6930892   .1426714    -1.78   0.076      .462318    1.039052
+ _Imarital_2 |   2.178089   .3701934     4.58   0.000     1.559134    3.042761
+ _Imarital_3 |   2.625331   .8088844     3.13   0.002     1.432122    4.812693
+ _Imarital_4 |   1.948759    .458586     2.84   0.005     1.226682    3.095883
+_Iracehisp_1 |   .8062788   .1901634    -0.91   0.362     .5069968    1.282228
+_Iracehisp_3 |   .7697401   .1665865    -1.21   0.227     .5028816    1.178209
+_Iracehisp_4 |   .1880016    .124835    -2.52   0.012     .0509241    .6940639
+_Ieduc_cat_2 |   .9173251   .1450366    -0.55   0.586      .672137    1.251955
+_Ieduc_cat_3 |   .4277978   .1583297    -2.29   0.022     .2065729    .8859389
+ _Idur_cat_2 |   .7041397   .1550244    -1.59   0.112     .4566501    1.085761
+ _Idur_cat_3 |   .9894509   .1966741    -0.05   0.957     .6692557    1.462839
+ _Idur_cat_4 |   .8815604   .1754441    -0.63   0.527     .5959928    1.303956
+       _cons |   .0012899   .0004468   -19.21   0.000     .0006526    .0025494
+------------------------------------------------------------------------------
+Note: 1 stratum omitted because it contains no subpopulation members.
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       323                Number of obs      =     5265333
+Number of PSUs     =       646                Population size    =  4321518271
+                                              Subpop. no. of obs =       25407
+                                              Subpop. size       = 16389152.42
+                                              Design df          =         323
+                                              F(  19,    305)    =        8.31
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .4966462   .0887818    -3.92   0.000     .3493911    .7059638
+  _Ixsmoke_1 |   3.146165   .6841319     5.27   0.000     2.051124    4.825818
+  _Ixsmoke_2 |    2.47921   .5842799     3.85   0.000      1.55939    3.941595
+_Ixchronic_2 |   1.377134   .4758797     0.93   0.355     .6977993    2.717829
+_Ixchronic_3 |   3.589578    1.03473     4.43   0.000     2.035887    6.328973
+  _Ibmicat_1 |   1.183239   .3406072     0.58   0.559     .6716203    2.084591
+  _Ibmicat_3 |   .5008124    .092377    -3.75   0.000      .348399     .719902
+  _Ibmicat_4 |   .5391596   .1033962    -3.22   0.001     .3697141    .7862646
+ _Imarital_2 |   .9969316   .1803491    -0.02   0.986     .6983937    1.423084
+ _Imarital_3 |   1.085501   .2039327     0.44   0.663     .7500903    1.570893
+ _Imarital_4 |   1.150661   .3146782     0.51   0.608      .671875    1.970634
+_Iracehisp_1 |   .9330719   .2013783    -0.32   0.748     .6102606    1.426642
+_Iracehisp_3 |   1.553516   .4035863     1.70   0.091     .9318614    2.589883
+_Iracehisp_4 |   .7996599   .3535074    -0.51   0.613     .3351178    1.908153
+_Ieduc_cat_2 |   1.221394   .2140261     1.14   0.255     .8652427    1.724145
+_Ieduc_cat_3 |   .7130778   .2454381    -0.98   0.327     .3622891     1.40352
+ _Idur_cat_2 |   .8198911   .1613685    -1.01   0.314     .5566665    1.207584
+ _Idur_cat_3 |   .7149445   .1362166    -1.76   0.079     .4914565    1.040063
+ _Idur_cat_4 |   .5290345   .1198172    -2.81   0.005     .3388258     .826022
+       _cons |   .0043484   .0017312   -13.66   0.000     .0019868    .0095169
+------------------------------------------------------------------------------
+Note: 16 strata omitted because they contain no subpopulation members.
+i.sex             _Isex_1-2           (naturally coded; _Isex_1 omitted)
+i.xsmoke          _Ixsmoke_1-3        (naturally coded; _Ixsmoke_3 omitted)
+i.xchronic        _Ixchronic_1-3      (naturally coded; _Ixchronic_1 omitted)
+i.bmicat          _Ibmicat_1-4        (naturally coded; _Ibmicat_2 omitted)
+i.marital         _Imarital_1-4       (naturally coded; _Imarital_1 omitted)
+i.racehisp        _Iracehisp_1-4      (naturally coded; _Iracehisp_2 omitted)
+i.educ_cat        _Ieduc_cat_1-3      (naturally coded; _Ieduc_cat_1 omitted)
+i.dur_cat         _Idur_cat_1-4       (naturally coded; _Idur_cat_1 omitted)
+(running cloglog on estimation sample)
+
+Survey: Complementary log-log regression
+
+Number of strata   =       274                Number of obs      =     4535640
+Number of PSUs     =       548                Population size    =  3712838783
+                                              Subpop. no. of obs =        8695
+                                              Subpop. size       =  5394354.23
+                                              Design df          =         274
+                                              F(  19,    256)    =        3.57
+                                              Prob > F           =      0.0000
+
+------------------------------------------------------------------------------
+             |             Linearized
+        dead |     exp(b)   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+     _Isex_2 |   .6401414   .1303597    -2.19   0.029     .4287128    .9558405
+  _Ixsmoke_1 |   1.085588   .2786258     0.32   0.749     .6549788    1.799297
+  _Ixsmoke_2 |   1.582633   .3235782     2.25   0.026     1.058218    2.366929
+_Ixchronic_2 |    .913176   .2636428    -0.31   0.753     .5172661    1.612111
+_Ixchronic_3 |   1.296946   .3224801     1.05   0.297     .7949415    2.115965
+  _Ibmicat_1 |   2.389461   .6465698     3.22   0.001     1.402651    4.070525
+  _Ibmicat_3 |    .634071   .1483311    -1.95   0.052     .4000636    1.004955
+  _Ibmicat_4 |   .9453071   .2077328    -0.26   0.798     .6133242    1.456987
+ _Imarital_2 |   .5230967   .1773608    -1.91   0.057     .2683451    1.019695
+ _Imarital_3 |   .9584325   .1929505    -0.21   0.833     .6448198    1.424573
+ _Imarital_4 |   1.063033   .3860832     0.17   0.866     .5200284    2.173033
+_Iracehisp_1 |    .577571   .1466663    -2.16   0.032     .3503446    .9521719
+_Iracehisp_3 |   1.006662   .2995443     0.02   0.982     .5603695    1.808392
+_Iracehisp_4 |   .9267974     .77122    -0.09   0.927      .180106    4.769155
+_Ieduc_cat_2 |   .8065996   .1471247    -1.18   0.240     .5632602    1.155066
+_Ieduc_cat_3 |   .9971916   .3580943    -0.01   0.994     .4917604    2.022105
+ _Idur_cat_2 |   1.089114   .2391109     0.39   0.698      .706913    1.677956
+ _Idur_cat_3 |   1.379101   .3194824     1.39   0.166     .8740413    2.176006
+ _Idur_cat_4 |   1.474515   .3484604     1.64   0.101     .9259741    2.348006
+       _cons |   .0225466   .0090874    -9.41   0.000     .0101972    .0498517
+------------------------------------------------------------------------------
+Note: 65 strata omitted because they contain no subpopulation members.
+
+. est table m1 m2 m3, b(%5.2f) ///
+>   star (.05 .01 .001) stats (N_sub) stfmt (%11.0gc) eform   
+
+-----------------------------------------------------------------
+    Variable |       m1               m2               m3        
+-------------+---------------------------------------------------
+     _Isex_2 |        0.50***          0.50***          0.64*    
+  _Ixsmoke_1 |        1.46             3.15***          1.09     
+  _Ixsmoke_2 |        1.43             2.48***          1.58*    
+_Ixchronic_2 |        1.87**           1.38             0.91     
+_Ixchronic_3 |        3.52***          3.59***          1.30     
+  _Ibmicat_1 |        2.00**           1.18             2.39**   
+  _Ibmicat_3 |        0.84             0.50***          0.63     
+  _Ibmicat_4 |        0.69             0.54**           0.95     
+ _Imarital_2 |        2.18***          1.00             0.52     
+ _Imarital_3 |        2.63**           1.09             0.96     
+ _Imarital_4 |        1.95**           1.15             1.06     
+_Iracehisp_1 |        0.81             0.93             0.58*    
+_Iracehisp_3 |        0.77             1.55             1.01     
+_Iracehisp_4 |        0.19*            0.80             0.93     
+_Ieduc_cat_2 |        0.92             1.22             0.81     
+_Ieduc_cat_3 |        0.43*            0.71             1.00     
+ _Idur_cat_2 |        0.70             0.82             1.09     
+ _Idur_cat_3 |        0.99             0.71             1.38     
+ _Idur_cat_4 |        0.88             0.53**           1.47     
+       _cons |        0.00***          0.00***          0.02***  
+-------------+---------------------------------------------------
+       N_sub |      97,831           25,407            8,695     
+-----------------------------------------------------------------
+                            legend: * p<.05; ** p<.01; *** p<.001
+
+. log close cloglog
+      name:  cloglog
+       log:  E:\SASDATAMH\cloglog.log
+  log type:  text
+ closed on:  15 May 2014, 21:04:49
+
+
+. 
+. 
+. 
+end of do-file
+
