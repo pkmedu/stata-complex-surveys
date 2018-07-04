@@ -1,0 +1,45 @@
+#qm0 a {
+	letter-spacing: -0.45px !important;
+}
+#scrollbar_content_worldcause {
+	height: 208px !important;
+}
+#scrollbar_content_worldcause_copy {
+	height: 208px !important;
+}
+#scrollbar_content_usacause {
+	height: 208px !important;
+}
+#scrollbar_content_usacause_copy {
+	height: 208px !important;
+}
+#scrollbar_content_usacause_instruction {
+	height: 208px !important;
+}
+#scrollbar_content_worldcause_instruction {
+	height: 208px !important;
+}
+#scrollbar_content_country_instruction {
+	height: 208px !important;
+}
+.world-health-rankings-scroll-header-ie9-fix {
+	height: 12px !important;
+}
+.navbar .nav > li > a {
+	letter-spacing: -0.45px !important;
+}
+.story-cont > p {
+	line-height: normal; font-size: 10pt;
+}
+ul.sitemap-regions-of-world.sitemap-country-list {
+	margin-left: 2px;
+}
+.navbar .nav > li > a {
+	letter-spacing: 0px !important;
+}
+div.country-population-pyramid #year_list li {
+	letter-spacing: -0.13px;
+}
+ul.sitemap-regions-of-world.sitemap-country-list {
+	margin-bottom: 5px; margin-left: 30px !important;
+}
