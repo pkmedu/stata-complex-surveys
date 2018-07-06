@@ -1,0 +1,1005 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/09/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&&nbsp;152 - Lecture 3 Answers to Exercises</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+
+<div class="center">
+<img src="../images/nc152banner.gif" alt="Banner">
+
+<h2>Answers to Exercises in Lecture 3</h2>
+<p>
+Click on an exercise
+</p>
+
+<p>
+[ <a href="#1">1</a> | <a href="#2">2</a> | <a href="#3">3</a> | 
+<a href="#4">4</a> ]</p> 
+</div>
+
+
+<div class="section_div"></div>
+
+<a name="1"></a>
+
+<p>
+1. Make the changes to <code class="cmd">mytt</code> to use the new way of
+dealing with <code class="cmd">by()</code> discussed under <a
+href="../lectures/nc152-l3.html#by">Handling <code class="cmd">by()</code>
+options</a>.  A copy of the mytt.ado file, as it now stands, is listed below
+the exercises, at the end of the lecture.
+
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+Only program <code class="cmd">tt_3</code> changes, and it changes in only a
+few places.  I will list the complete solution, but here, in outline, are the
+changes I made.
+</p>
+
+<p>
+There is a part of the code that reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* Verify `by' divides  */
+                                /* data into 2 groups   */
+quietly tabulate `by' if `touse'
+if r(r)!=2 {
+     di as error "`by' must take on two values"
+     exit 198
+}
+/* ---------------------------------------------------- */
+</code></pre>
+
+<p>
+I replaced that with
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* make group variable  */
+                                /* and verify 2 groups  */
+tempvar group
+sort `touse' `by'
+quietly by `touse' `by': gen `group'=1 if _n==1 &amp; `touse'
+quietly replace `group' = sum(`group') if `touse'
+if `group'[_N]!=2 {
+     di as error "`by' must take on two values"
+     exit 198
+}</code>
+/* ---------------------------------------------------- */
+</pre>
+
+<p>
+This is the sort-mark-and-sum logic.  Later in the code there is a part that
+reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* create calculation   */
+                                /* ingredients          */
+quietly summarize `by' if `touse' 
+local min = r(min)
+local max = r(max)
+
+quietly summarize `varlist' if `by'==`min' &amp; `touse'
+...
+quietly summarize `varlist' if `by'==`max' &amp; `touse'
+...</code>
+/* ---------------------------------------------------- */
+</pre>
+
+<p>
+I simplified that to read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* create calculation   */
+                                /* ingredients          */
+quietly summarize `varlist' if `group'==1 &amp; `touse'
+...
+quietly summarize `varlist' if `group'==2 &amp; `touse'
+...</code>
+/* ---------------------------------------------------- */
+</pre>
+
+
+<p>
+That was all.  I did not really need the <code class="cmd">&amp; `touse'</code>
+part on the end of the two summarizes because <code
+class="cmd">`group'==1</code> or <code class="cmd">`group'==2</code> implies
+<code class="cmd">`touse'==1</code>, but that's too tricky for me and adding
+the <code class="cmd">&amp; `touse'</code> makes the code clearer.
+</p>
+
+<p>
+I then tested my new <code class="cmd">mytt.ado</code> program:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. discard </code>
+
+<code class="cmd">. mytt mpg, by(foreign)</code>
+t(72) = -3.6308484
+
+<code class="cmd">. decode foreign, gen(sf)</code>
+
+<code class="cmd">. mytt mpg, by(sf)</code>
+t(72) = -3.6308484
+
+<code class="cmd">. mytt mpg, by(rep78)</code>
+rep78 must take on two values
+r(198);
+</pre>
+
+
+<p>
+It works.  Here is the new <code class="cmd">mytt.ado</code>:
+</p>
+
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec3/mytt1.ado">mytt1.ado (L.2 Ex. 1)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program mytt
+     syntax varname [=/exp] [if] [in] [, BY(varname) UNEqual Welch]
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+              tt_2 `0'
+          }
+    }
+end
+
+program tt_1
+     syntax varname =/exp [if] [in]
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+end
+
+program tt_2
+     syntax varname =/exp [if] [in]
+     tempvar diff
+     quietly gen `diff' = `varlist' - (`exp') `if' `in'
+     tt_1 `diff' = 0 `if' `in'
+end
+
+program tt_3
+     syntax varname [if] [in], BY(varname) [UNEqual Welch]
+
+     /* ---------------------------------------------------- */
+                                     /* Mark the             */
+                                     /* to-use subsample     */
+     marksample touse
+
+     /* ---------------------------------------------------- */
+                                     /* Verify `by' divides  */
+                                     /* data into 2 groups   */
+     tempvar group
+     sort `touse' `by'
+     quietly by `touse' `by': gen `group'=1 if _n==1 &amp; `touse'
+     quietly replace `group' = sum(`group') if `touse'
+     if `group'[_N]!=2 {
+          di as error "`by' must take on two values"
+          exit 198
+     }
+
+     /* ---------------------------------------------------- */
+                                       /* Verify welch and   */
+                                       /* set unequal         */
+      if "`welch'"!=""  {
+           local unequal "unequal"
+      }
+
+
+     /* ---------------------------------------------------- */
+                                     /* create calculation   */
+                                     /* ingredients          */
+
+     quietly summarize `varlist' if `group'==1 &amp; `touse'
+     local n1 = r(N)
+     local x1 = r(mean)
+     local s1 = r(sd)
+     local v1 = r(Var)
+     local V1 = r(Var)/`n1'
+
+     quietly summarize `varlist' if `group'==2 &amp; `touse'
+     local n2 = r(N)
+     local x2 = r(mean)
+     local s2 = r(sd)
+     local v2 = r(Var)
+     local V2 = r(Var)/`n2'
+
+
+     /* ---------------------------------------------------- */
+                                     /* Perform calculation  */
+
+     if "`unequal'"=="" {          /* ... equal Var case   */
+          local d = `n1'+`n2'-2
+          local t = (`x1'-`x2') / (              ///
+          sqrt(((`n1'-1)*`v1' +          ///
+          (`n2'-1)*`v2')/`d') *    ///
+          sqrt(1/`n1'+1/`n2')          ///
+          )
+     }
+     else {                         /* ... unequal Var case */
+          local t = (`x1'-`x2')/sqrt(`V1' + `V2')
+          if "`welch'"=="" {
+               local d = (`V1'+`V2')^2 / (       ///
+               `V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///
+               )
+          }
+          else {
+               local d = -2 + (`V1'+`V2')^2 / ///
+               ( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )
+          }
+     }
+     /* ---------------------------------------------------- */
+     /* display result       */
+     di "t(" `d' ") = " `t'
+end</code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<a name="2"></a>
+
+<p>
+2. Write <code class="cmd">mytti</code>, the immediate command, starting with the current version of <code class="cmd">mytt</code>.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+When I did this, I thought the "starting with the current version of <code
+class="cmd">mytt</code>" was unfair because most of the code I found in the
+lecture and I only needed to pull code from <code class="cmd">mytt</code> when
+I got to the point of coding <code class="cmd">tt_3i</code>.
+</p>
+
+<p>
+Anyway, looking over the lecture, I found the following:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytti
+     tokenize "`0'", parse(" =,")
+     IsObs `1'
+     IsMean `2'
+     IsSd `3'
+     IsEqual `4'
+
+     capture IsMean `6'
+     if _rc {                     /* must be syntax 1 */
+          IsMean `5'
+          IsNull `6'
+          tt_1i `*'
+     }
+     else {                        /* must be syntax 3 */
+          IsObs `5'         
+          /* IsMean `6' already done */
+          IsSd `7'
+          tt_3i `*'
+     }
+end
+
+program IsObs
+     args n
+     confirm integer number `n'
+     if `n'&lt;2 { 
+          di as error "number of observations must be &gt;= 2"
+          exit 198
+     }
+end
+
+program IsNull
+     args nothing
+     if "`nothing'" != "" { 
+          di as error "`*' found where nothing expected"
+          exit 198
+     }
+end</code></pre>
+
+<p>
+I decided to define the rest of the Is* programs first:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program IsMean
+     args mu
+     confirm number `mu'
+end
+
+program IsSd
+     args sd
+     confirm number `sd'
+if `sd'&lt;=0 { 
+  di as error "`sd' is not a valid standard deviation"
+  exit 198
+}
+end
+
+program IsEqual
+args eqsign
+if "`eqsign'" != "=" { 
+exit 198 
+}
+end
+</code></pre>
+
+
+<p>
+I then needed <code class="cmd">tt_1i</code>, which I found in the lecture:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     args n xbar s eqsign mu
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+     di "t(" `n'-1 ") = " `t'
+end</code>
+</pre>
+
+<p>
+I also found the beginnings of <code class="cmd">tt_3i</code>, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_3i
+     /*    1  2  3    4    5  6  7 */
+     args n1 x1 s1 eqsign n2 x2 s2 
+
+     macro shift 7
+     local 0 "`*'"
+     syntax [, UNEqual Welch]</code>
+</pre>
+
+<p>
+so I finished it off, which I did mostly by starting with <code
+class="cmd">tt_3</code> from <code class="cmd">mytt</code> and then deleting
+lines until I got to the "Verify <code class="cmd">welch</code> only if <code
+class="cmd">unequal</code>" comment.  This I kept just as it was:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                  /* Verify welch and   */
+                                  /* set unequal         */
+if "`welch'"!=""  {
+        local unequal "unequal"
+}
+</code>
+/* ---------------------------------------------------- */
+</pre>
+
+<p>
+Next came a block of code that read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* create calculation   */
+                                /* ingredients          */
+     quietly summarize `varlist' if `group'==1 &amp; `touse'
+     local n1 = r(N)
+     local x1 = r(mean)
+     local s1 = r(sd)
+     local v1 = r(Var)
+     local V1 = r(Var)/`n1'
+
+     quietly summarize `varlist' if `group'==2 &amp; `touse'
+     local n2 = r(N)
+     local x2 = r(mean)
+     local s2 = r(sd)
+     local v2 = r(Var)
+     local V2 = r(Var)/`n2'
+/* ---------------------------------------------------- */
+</code>
+</pre>
+
+<p>
+and this simplified to
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* ---------------------------------------------------- */
+                                /* create calculation   */
+                                /* ingredients          */
+     local v1 = `s1'^2
+     local V1 = `v1'/`n1'
+
+     local v2 = `s2'^2
+     local V2 = `v2'/`n2'
+/* ---------------------------------------------------- */
+</code></pre>
+
+
+<p>
+Finally, the part of the code required no changes:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+                                    /* Perform calculation  */
+     if "`unequal'"=="" {           /* ... equal Var case   */
+          local d = `n1'+`n2'-2
+          local t = (`x1'-`x2') / (              ///
+          sqrt(((`n1'-1)*`v1' +                  ///
+          (`n2'-1)*`v2')/`d') *                  ///
+          sqrt(1/`n1'+1/`n2')                    ///
+          )
+     }
+     else {                          /* ... unequal Var case */
+          local t = (`x1'-`x2')/sqrt(`V1' + `V2')
+          if "`welch'"=="" {
+               local d = (`V1'+`V2')^2 / (       ///
+               `V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///
+                )
+          }
+          else {
+               local d = -2 + (`V1'+`V2')^2 / ///
+               ( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )
+          }
+     }
+     /* ---------------------------------------------------- */
+                                     /* display result       */
+     di "t(" `d' ") = " `t'
+end
+</code>
+</pre>
+
+<p>
+Thus my completed file read
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec3/mytti.ado">mytti.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program mytti
+     tokenize "`0'", parse(" =,")
+     IsObs `1'
+     IsMean `2'
+     IsSd `3'
+     IsEqual `4'
+
+     capture IsMean `6'
+     if _rc {                     /* must be syntax 1 */
+          IsMean `5'
+          IsNull `6'
+          tt_1i `*'
+     }
+     else {                        /* must be syntax 3 */
+          IsObs `5'
+          /* IsMean `6' already done */
+          IsSd `7'
+          tt_3i `*'
+     }
+end
+
+program IsObs
+     args n
+     confirm integer number `n'
+     if `n'&lt;2 {
+     di as error "number of observations must be &gt;= 2"
+     exit 198
+}
+end
+
+program IsNull
+     args nothing
+     if "`nothing'" != "" {
+          di as error "`*' found where nothing expected"
+     exit 198
+     }
+end
+
+program IsMean
+     args mu
+     confirm number `mu'
+end
+
+program IsSd
+     args sd
+     confirm number `sd'
+     if `sd'&lt;=0 {
+          di as error "`sd' is not a valid standard deviation"
+          exit 198
+     }
+end
+
+program IsEqual
+     args eqsign
+     if "`eqsign'" != "=" { 
+	exit 198 
+     }
+end
+
+program tt_1i
+     args n xbar s eqsign mu
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+     di "t(" `n'-1 ") = " `t'
+end
+
+program tt_3i
+     /*    1  2  3    4    5  6  7 */
+     args n1 x1 s2 eqsign n2 x2 s2
+     macro shift 7
+     local 0 "`*'"
+     syntax [, UNEqual Welch]
+
+
+     /* ---------------------------------------------------- */
+                                       /* Verify welch and   */
+                                      /* set unequal          */
+     if "`welch'"!=""  {
+          local unequal "unequal"
+     }
+
+     /* ---------------------------------------------------- */
+                                     /* create calculation   */
+                                     /* ingredients          */
+     local v1 = `s1'^2
+     local V1 = `v1'/`n1'
+
+     local v2 = `s2'^2
+     local V2 = `v2'/`n2'
+     /* ---------------------------------------------------- */
+                                     /* Perform calculation  */
+
+     if "`unequal'"=="" {           /* ... equal Var case   */
+          local d = `n1'+`n2'-2
+          local t = (`x1'-`x2') / (     ///
+          sqrt(((`n1'-1)*`v1' +         ///
+          (`n2'-1)*`v2')/`d') *         ///
+          sqrt(1/`n1'+1/`n2')           ///
+          )
+     }
+     else {                          /* ... unequal Var case */
+          local t = (`x1'-`x2')/sqrt(`V1' + `V2')
+          if "`welch'"=="" {
+               local d = (`V1'+`V2')^2 / (       ///
+               `V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///
+               )
+          }
+          else {
+               local d = -2 + (`V1'+`V2')^2 / ///
+               ( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )
+          }
+     }
+     /* ---------------------------------------------------- */
+                                     /* display result       */
+     di "t(" `d' ") = " `t'
+end    
+</code></pre></td> 
+</tr> 
+
+</table>
+
+<div class="section_div"></div>
+
+<a name="3"></a>
+<p>
+3. Rewrite <code class="cmd">mytt</code>, as modified in <a href="#1">Exercise
+1</a>, to use <code class="cmd">mytti</code> to make the calculations.  Call
+this new program <code class="cmd">mytt2.ado</code>.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+This amounts to simply rewriting (simplifying) <code class="cmd">tt_1</code>
+and <code class="cmd">tt_3</code>.  The current <code class="cmd">tt_1</code>
+reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varname =/exp [if] [in]
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+and the substitution does not result in much simplification:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varname =/exp [if] [in]
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+     }
+     mytti `n' `xbar' `s' = `exp'
+end
+</code></pre>
+
+<p>
+I won't quote the lengthy original <code class="cmd">tt_3</code> to you. It
+remains unchanged up to the part that reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+     /* ---------------------------------------------------- */
+                                       /* Verify welch and   */
+                                       /* set unequal         */
+	if "`welch'"!=""  {
+        	local unequal "unequal"
+	}
+     
+     /* ---------------------------------------------------- */
+</code></pre>
+
+<p>
+This I simply deleted because the validity of the options is the
+responsibility of <code class="cmd">mytti</code>.  The next bit, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+     /* ---------------------------------------------------- */
+                                     /* create calculation   */
+                                     /* ingredients          */
+
+     quietly summarize `varlist' if `group'==1 &amp; `touse'
+     local n1 = r(N)
+     local x1 = r(mean)
+     local s1 = r(sd)
+     local v1 = r(Var)
+     local V1 = r(Var)/`n1'
+
+     quietly summarize `varlist' if `group'==2 &amp; `touse'
+     local n2 = r(N)
+     local x2 = r(mean)
+     local s2 = r(sd)
+     local v2 = r(Var)
+     local V2 = r(Var)/`n2'
+
+     &lt;etc.&gt;
+end</code>
+</pre>
+
+<p>
+I changed.  The lengthy &lt;etc.&gt; part I deleted along with the calculation
+of <code class="cmd">`v2'</code> and <code class="cmd">`V2'</code> (both
+convenience values used in &lt;etc.&gt;).  I substituted this end part to read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+     /* ---------------------------------------------------- */
+                                     /* create calculation   */
+                                     /* ingredients          */
+
+     quietly summarize `varlist' if `group'==1 &amp; `touse'
+     local n1 = r(N)
+     local x1 = r(mean)
+     local s1 = r(sd)
+
+     quietly summarize `varlist' if `group'==2 &amp; `touse'
+     local n2 = r(N)
+     local x2 = r(mean)
+     local s2 = r(sd)
+
+     mytti `n1' `x1' `s1' = `n2' `x2' `s2', `welch' `unequal'
+end
+</code></pre>
+
+<p>
+and I was done.
+</p>
+
+<p>
+I then thought about the options issue and decided rather than coding 
+</p>
+
+<pre class="codeblock">
+<code class="cmd"> syntax varname [if] [in], BY(varname) [UNEqual Welch]</code>
+                                            ^^^^^^^^^^^^^
+</pre>
+
+<p>
+I would recode it 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in], BY(varname) [*]</code>
+</pre>
+
+<p>
+and then I would change my final line from 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mytti `n1' `x1' `s1' = `n2' `x2' `s2', `welch' `unequal'</code>
+</pre>
+
+<p>
+to
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mytti `n1' `x1' `s1' = `n2' `x2' `s2', `options'</code>
+</pre>
+
+<p>
+This way, should I ever add an option to <code class="cmd">mytti</code>, it
+will propagate to <code class="cmd">mytt</code> without any further action on
+my part.  I had to make a similar change to the parsing in <code
+class="cmd">mytt2</code> itself.
+</p>
+
+<p>
+The result was:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec3/mytt2.ado">mytt2.ado</a></th> 
+</tr>
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program mytt2
+     syntax varname [=/exp] [if] [in] [, BY(varname) *]
+
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+               tt_2 `0'
+          }
+     }
+end
+
+program tt_1
+     syntax varname =/exp [if] [in]
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+     }
+     mytti `n' `xbar' `s' = `exp'
+end
+
+program tt_2
+     syntax varname =/exp [if] [in]
+
+     tempvar diff
+     quietly gen `diff' = `varlist' - (`exp') `if' `in'
+     tt_1 `diff' = 0 `if' `in'
+end
+
+program tt_3
+     syntax varname [if] [in], BY(varname) [*]
+
+     /* ---------------------------------------------------- */
+                                     /* Mark the             */
+                                     /* to-use subsample     */
+      marksample touse
+
+     /* ---------------------------------------------------- */
+                                     /* make group variable  */
+                                     /* and verify 2 groups  */
+     tempvar group
+     sort `touse' `by'
+     quietly by `touse' `by': gen `group'=1 if _n==1 &amp; `touse'
+     quietly replace `group' = sum(`group') if `touse'
+     if `group'[_N]!=2 {
+          di as error "`by' must take on two values"
+          exit 198
+     }
+
+     /* ---------------------------------------------------- */
+                                     /* create calculation   */
+                                     /* ingredients          */
+
+     quietly summarize `varlist' if `group'==1 &amp; `touse'
+     local n1 = r(N)
+     local x1 = r(mean)
+     local s1 = r(sd)
+
+     quietly summarize `varlist' if `group'==2 &amp; `touse'
+     local n2 = r(N)
+     local x2 = r(mean)
+     local s2 = r(sd)
+
+     mytti `n1' `x1' `s1' = `n2' `x2' `s2', `options'
+end</code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<a name="4"></a>
+
+<p>
+4. Researchers often use linear regression to estimate models
+of the form
+</p>
+
+<pre class="codeblock">
+ln y = a + Xb + u 
+</pre>
+
+<p>
+As an example, you might use the automobile data and 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. generate lnp = ln(price)
+. regress lnp weight foreign
+</code></pre>
+
+<p>
+A researcher interested in the predicted value of price might
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. predict lnphat
+. gen phat = exp(lnphat)
+</code></pre>
+
+<p>
+That, however, is not the prediction of the mean of price conditional on the
+regressors.  It is a prediction of the median.  The prediction of the mean is
+given by the formula
+</p>
+
+<pre class="codeblock"><code class="cmd">
+E(price) = exp(lnphat)*exp(s2/2)
+</code></pre>
+
+<p>
+where s2 is the estimated variance of u (the square of the reported root
+mean square error of the regression).  Write a program
+</p>
+
+<pre class="codeblock"><code class="cmd">
+predexp <span class="repl">newvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>]
+</code></pre>
+
+<p>
+ that, used after <code class="cmd">regress</code>,
+will predict this value.  (Note: <code class="cmd">regress</code> saves s2; see 
+<!-- change manual --> <span class="manual_entry">[R] regress</span>.)
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+At last, a short program.  My solution is
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec3/predexp.ado">predexp.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program predexp
+syntax newvarname [if] [in]
+tempvar new
+
+quietly {
+    local s2 = e(rmse)^2
+    tempvar pred
+    predict double `pred' `if' `in'
+    gen `typlist'  `new' = exp(`pred')*exp(`s2'/2)
+    rename `new' `varlist'
+}
+end</code></pre></td> 
+</tr> 
+
+</table>
+
+<p>
+<code class="cmd">regress</code> saves the root mean square error (RMSE) in
+<code class="cmd">e(rmse)</code>, so I got it from there.
+</p>
+
+<div class="section_div"></div>
+
+<div class="center">
+<h2>End of Answers to Exercises for Lecture 3</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+
+<tr>
+<td colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>

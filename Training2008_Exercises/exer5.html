@@ -1,0 +1,701 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 11/27/07 khc -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152 - Lecture 5 Answers to Exercises</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+
+<div class="center">
+<img src="../images/nc152banner.gif" alt="Banner">
+
+
+<h2>Answers to Exercises in Lecture 5</h2>
+
+<p>
+Click on an exercise
+</p>
+
+<p>
+[ <a href="#1">1</a> | <a href="#2">2</a> | <a href="#3">3</a> ]</p>
+</div>
+
+<div class="section_div"></div>
+
+
+<a name="1"></a>
+<p>
+1. Write getrhs.ado, syntax <code class="cmd">getrhs</code>, to return in r(rhs)
+the names of the independent variables from the most recently estimated model.
+Assume that <code class="cmd">getrhs</code> will be used only after single-equation models such as
+<code class="cmd">regress</code>, <code class="cmd">logit</code>, and <code class="cmd">probit</code>.
+</p>
+
+<p>
+Hint:  The extended macro function <code class="cmd">colnames(<span class="repl">matname</span>)</code> returns the
+column names of a matrix or vector; see <code class="cmd">help local</code>.  The coefficient
+vector after estimation is <code class="cmd">e(b)</code>.  Because of an oddity of Stata,
+referring to <code class="cmd">colnames(e(b))</code> produces an error message.  You can, however,
+first copy the coefficient vector by coding
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+        tempname b 
+        matrix `b' = e(b) 
+</code></pre>
+
+
+<p>
+and then use <code class="cmd">`b'</code>.
+</p>
+
+<p>
+These column names will include _cons if the model was estimated with an
+intercept.  Stata's estimation commands, if they include _cons, always place
+_cons last.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+I hope you looked at the hint and tried to obtain the solution interactively
+before writing your program; I did:
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">. regress mpg weight foreign</code>
+output omitted
+
+<code class="cmd">. matrix b = e(b)</code>
+
+<code class="cmd">. mat list b</code>
+
+b[1,3]
+weight     foreign       _cons
+y1  -.00658789  -1.6500291   41.679702
+
+<code class="cmd">. local names : colnames(b)</code>
+
+<code class="cmd">. display "the names are |`names'|"</code>
+the names are |weight foreign _cons|
+</pre>
+
+
+<p>
+I now know how the guts of my program will work.  There was then one more thing
+I wanted to check out&#8212;what would happen if I attempted to <code class="cmd">matrix b =
+e(b)</code> and there were no estimates to be gotten.  <code class="cmd">discard</code> gets rid of
+saved results:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. discard</code>
+
+<code class="cmd">. matrix b = e()</code>
+last estimates not found
+r(301);
+</pre>
+
+
+<p>
+Great!  My program is 
+</p>
+
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec5/getrhs1.ado">getrhs1.ado (ex. 1)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+*! NC-152 Lecture 5 exercise 1
+program getrhs, rclass
+<!-- change version # -->     version 10.0
+if `"`0'"' != "" { 
+  error 198
+}
+
+tempname b
+matrix `b' = e(b)
+local names : colnames(`b')
+
+local n : word count `names'
+tokenize "`names'"
+
+if "``n''" == "_cons" {
+  local `n'
+}
+ret local rhs "`*'"
+end </code></pre></td> 
+</tr> 
+</table>
+
+
+<div class="section_div"></div>
+
+<a name="2"></a>
+<p>
+2. Modify getrhs.ado to add a <code class="cmd">used</code> option.  <code class="cmd">used</code>
+further edits the returned list to exclude variables dropped in estimation.
+</p>
+
+<p>
+Hint:  Make this determination based on the standard error <code
+class="cmd">_se[]</code>.  Stata sets the recorded standard error to zero when
+a variable is dropped.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+This is easy:  if <code class="cmd">used</code> is specified, once I have my
+list with _cons removed, I just need to sweep through it and remove any
+elements that have _se[]==0.
+</p>
+
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec5/getrhs2.ado">getrhs2.ado (ex. 2)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+*! NC-152 Lecture 5 exercise 2
+program getrhs, rclass
+<!-- change version # -->     version 10.0
+
+     syntax [, Used]                          /* &lt;-- new         */
+
+     tempname b
+     matrix `b' = e(b)
+     local names : colnames(`b')
+
+     local n : word count `names'
+     tokenize "`names'"
+
+     if "``n''" == "_cons" {
+          local `n'
+     }
+
+     if "`used'" != "" {                       /* &lt;--  new        */
+          local i = 1                          /* &lt;--  new        */
+          while "``i''" != "" {                /* &lt;--  new        */
+               if _se[``i'']==0 {              /* &lt;--  new        */
+                    local `i' " "              /* &lt;--  new        */
+               }                               /* &lt;--  new        */
+          local i = `i' + 1                    /* &lt;--  new        */
+          }                                    /* &lt;--  new        */
+     }                                         /* &lt;--  new        */
+ret local rhs "`*'"
+end</code></pre></td> 
+</tr> 
+</table>
+
+    
+<div class="section_div"></div>
+
+<a name="3"></a>
+<p>
+3. Write todo.ado.  The syntax is
+</p>
+
+
+<pre class="codeblock">
+todo                     lists everything you have to do
+todo add &lt;text&gt;    adds text to the list 
+todo done                lists all tasks completed in the last 2
+                         weeks
+todo done #              marks task # as done
+todo undone #            marks task # as undone
+</pre>
+
+
+<p>
+I <code class="cmd">todo</code> works by keeping a dataset of tasks.  The dataset contains
+</p>
+
+<pre class="codeblock">
+no                       task number
+date                     date task assigned
+text                     text of task (up to 80 characters)
+done                     date task done
+</pre>
+
+<p>
+This dataset should be called tasks.dta and should be stored in a location of
+your choosing.  For instance, on my Windows computer, I decided to keep
+tasks.dta in <code>C:\ado</code>.
+</p>
+
+<p>
+Here is some output from a working todo:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. todo add do exercise 3 of lecture 5</code>
+
+<code class="cmd">. todo</code>
+  1.  20feb2001  read nc-152 lecture 5
+  2.  21feb2001  do exercise 3 of lecture 5
+
+<code class="cmd">. todo done 1</code>
+
+<code class="cmd">. todo</code>
+  2.  21feb2001  do exercise 3 of lecture 5
+
+<code class="cmd">. todo done</code>
+  1.  20feb2001  21feb2001  read nc-152 lecture 5
+</pre>
+
+<p>
+Your program must address the following issues:
+</p>
+
+<ol>
+<li>The tasks.dta dataset should be created if it does not already
+exist.</li>
+
+<li>The tasks.dta dataset will become empty.</li>
+
+<li>Tasks should be removed after they have been completed 
+    for 2 weeks or more.</li>
+
+<li>
+<p>
+Task numbers should not grow without bound.  Instead, as tasks are
+   finally removed, they are to be recycled.  Thus, after a task has
+   been used for a while, I might see the output:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. todo</code>
+2.  21feb2001  do exercise 3 of lecture 5
+1.  22feb2001  oil change on car
+9.  24feb2001  print all the lectures, get notebook
+3.  24feb2001  check out http://www.stata.com
+</pre>
+
+<p>
+Write your code so the next task number is 4.
+</p>
+</li>
+<li>
+Allow abbreviations of <code class="cmd">add</code>, <code class="cmd">done</code>, and <code class="cmd">undone</code>.  <code class="cmd">add</code>
+may be specified as <code class="cmd">a</code>, <code class="cmd">ad</code>, or <code class="cmd">add</code>.  <code class="cmd">done</code> may be
+specified as <code class="cmd">d</code>, <code class="cmd">do</code>, <code class="cmd">don</code>, or <code class="cmd">done</code>.  <code class="cmd">undone</code> may
+be specified as <code class="cmd">u</code>, <code class="cmd">und</code>, <code class="cmd">...</code>, <code class="cmd">undone</code>.
+
+<p> 
+Hint:  Despite appearances, this is not a difficult problem.  It may
+seem artificial to you, but we at Stata actually use something similar to this
+and have found it very useful.
+</p>
+
+<p>
+Stata stores the current date in <code class="cmd">c(current_date)</code>.
+</p>
+
+<p>
+Do not let your inability to solve a particular problem prevent you from going
+forward with the task.  That is, you may not find a way to deal with the
+initialization event when <code>C:\ado\tasks.dta</code> (or whatever you call it) does not
+exist.  Fine, create the dataset by hand and complete the exercise otherwise.
+Perhaps you cannot figure out how to keep task numbers from growing without
+bound.  Fine, let them grow.  Complete the exercise and making a working todo as
+well as you can.
+</p>
+
+<p>
+To set you on the path to producing an elegant, modifiable program, let me
+emphasize that my solution to this exercise involved many subroutines.  One of
+the programs in my ado file reads
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+program define Add
+if `"`0'"' == "" { 
+  di as error "syntax is  todo add &lt;text&gt;"
+  exit 198
+}
+preserve
+UseData
+GetNo
+local no = r(next)
+	
+quietly {
+  local n = _N + 1 
+  set obs `n'
+  replace no = `no' in `n'
+  replace date = date("`c(current_date)'","DMY") in `n'
+  replace text = `"`0'"' in `n'
+}
+SaveData
+end
+</code></pre>
+</li>
+
+</ol>
+<h4>Answer:</h4>
+
+<p>
+Despite appearances, this is not a difficult program to write.  I mentioned
+some problems your program was to address.  I thought about each of these
+issues before writing my code, so let me first give you my thoughts.
+</p>
+
+<ul>
+<li>Creation of the tasks.dta dataset if it does not already exist
+
+<p>
+Right.  There is some dataset <code>C:\ado\tasks.dta</code> that my various commands will
+need to load.  Coding 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">use C:\ado\tasks.dta</code>
+</pre>
+
+<p>
+will give an error if the dataset does not exist.  My solution is to assume
+the existence of a subroutine
+</p>
+
+<pre class="codeblock">
+UseData:
+does equivalent of <code class="cmd">use C:\ado\tasks.dta</code>.
+</pre>
+
+<p>
+If, however, the dataset does not exist, UseData will create a <code>C:\ado\tasks.dta</code> containing nothing.
+
+</p></li>
+
+<li>The tasks.dta dataset that becomes empty
+
+<p>
+Yes, indeed, this could happen, so let's set things up so that
+<code>C:\ado\tasks.dta</code> always contains one observation that observation
+will be a phony.  I will mark this phony observation by having a task number of
+&lt;missing&gt;.  Then, in all my commands that work with the data, I will code
+<code class="cmd">if no!=.</code> on the end.
+</p></li>
+
+<li>Final removal of tasks after they have been completed by 2 weeks or more
+
+<p>
+I have already decided to have a UseData subroutine, so now let me add a
+SaveData subroutine,
+</p>
+
+<pre class="codeblock">
+SaveData:
+does equivalent of <code class="cmd">save C:\ado\tasks.dta</code>
+</pre>
+
+<p>
+but, before it does that, it removes any tasks from the data that have been
+completed for 2 weeks or more.
+</p></li>
+
+<li>Task numbers are not to grow without bound
+
+<p>
+Okay, another subroutine, <code class="cmd">GetNo</code>, the basic logic of which is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program GetNo, rclass
+local i = 1
+capture assert no!=`i'
+while _rc != 0 {
+  local i = `i' + 1
+  capture assert no!=`i'
+}
+ret scalar next = `i' 
+end
+</code></pre>
+</li>
+
+<li>Allow abbreviations of <code class="cmd">add</code>, <code class="cmd">done</code>, and <code class="cmd">undone</code>
+
+<p>
+Pretend that somewhere in my code, macro <code class="cmd">`cmd'</code> contains the subcommand
+typed by the user.  So someplace in my code is something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`cmd'"=="add" {
+...
+}
+</code></pre>
+
+<p>
+Now, to allow abbreviations, I could just code what I want:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`cmd'"=="add" | "`cmd'"=="ad" | "`cmd'"=="a" {
+...
+}
+</code></pre>
+
+<p>
+That does not have a lot of appeal, but it will work.  Here is something else
+that will work:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if substr("add",1,length("`cmd'")) == "add" {
+...
+}
+</code></pre>
+</li>
+</ul>
+
+<h3>My solution</h3>
+
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec5/todo.ado">todo.ado (ex. 3) </a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+*! NC-152 Lecture 5 Exercise 3
+program todo
+<!-- change version # -->	version 10.0
+
+gettoken cmd 0 : 0
+local l = length("`cmd'")
+if "`cmd'" == "" {
+	List `0'
+}
+else if "`cmd'" == substr("done",1,`l') {
+	Done `0'
+}
+else if "`cmd'" == substr("add",1,`l') {
+	Add `0'
+}
+else if "`cmd'" == substr("undone",1,`l') {
+	Undone `0'
+}
+else {
+	error 198
+}
+end
+
+program define Add
+if `"`0'"' == "" {
+	di as error "syntax is  todo add &lt;text&gt;"
+	exit 198
+}
+preserve
+UseData
+GetNo
+local no = r(next)
+
+quietly {
+	local n = _N + 1
+	set obs `n'
+	replace no = `no' in `n'
+	replace date = date("`c(current_date)'","DMY") in `n'
+	replace text = `"`0'"' in `n'
+}
+SaveData
+end
+
+program define List
+preserve
+UseData
+quietly {
+	keep if done==. &amp; no!=.
+}
+format text %1s
+list no date text, noobs
+end
+
+program define Done
+if `"`0'"'=="" {
+	ListDone
+	exit
+}
+confirm integer number `1'
+if "`2'" != "" { 
+	error 198 
+}
+
+preserve
+        UseData
+        quietly count if no==`1' &amp; done==.
+        if r(N)==1 {
+                qui replace done = date("`c(current_date)'","DMY") if no==`1' &amp; done==.
+                SaveData
+                exit
+        }
+        if r(N)==0 {
+                quietly count if no==`1'
+                if r(N)==0 {
+                        di as error "task `1' not found"
+                }
+                else    di as error "task `1' already done"
+                exit 111
+        }
+        /* if this program works, then this theoretically cannot happen: */
+        di as error "multiple tasks--task system error"
+        exit 9000
+end
+
+program define ListDone
+        preserve
+        UseData
+        quietly keep if done!=. &amp; no!=.
+        format text %1s
+        list no date done text, noobs
+end
+
+program define Undone
+        confirm integer number `1'
+        if "`2'" != "" { 
+		error 198 
+	}
+
+        preserve
+        UseData
+        quietly count if no==`1' &amp; done!=.
+        if r(N)==1 {
+                qui replace done = . if no==`1' &amp; done!=.
+                SaveData
+                exit
+        }
+        if r(N)==0 {
+                quietly count if no==`1'
+                if r(N)==0 {
+                        di as error "task `1' not found"
+                }
+                else    di as error "task `1' not done"
+                exit 111
+        }
+        di as error "multiple tasks--task system error"
+        exit 9000
+end
+
+program define UseData
+        capture use C:\ado\tasks.dta, clear
+        if _rc==601 {
+                MakeData
+                use C:\ado\tasks.dta, clear
+        }
+        else if _rc {
+                di as error "could not use tasks.dta"
+                exit _rc
+        }
+end
+
+program define SaveData
+        DropOld
+        quietly {
+                compress
+                save C:\ado\tasks.dta, replace
+        }
+end
+
+program define DropOld
+        local today = date("`c(current_date)'","DMY")
+        quietly drop if done!=. &amp; `today'-done &gt;= 14 &amp; no!=.
+end
+
+program define MakeData
+        quietly {
+                drop _all
+                set obs 1
+                gen int no = .
+                gen long date = .
+                gen long done = .
+                gen str1 text = ""
+                format date %d
+                format done %d
+        }
+        SaveData
+end
+
+program define GetNo, rclass
+        local i = 1
+        capture assert no!=`i'
+        while _rc != 0 {
+                local i = `i' + 1
+                capture assert no!=`i'
+        }
+        ret scalar next = `i'
+end </code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<div class="center">
+<h2>End of Answers to Exercises for Lecture 5</h2>
+</div>
+
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp 
+LP.
+</a></p>
+
+</body>

@@ -1,0 +1,261 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/07/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152 - Lecture 1 Answers to Exercises</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+
+<div class="center">
+<img src="../images/nc152banner.gif" alt="Banner">
+
+<h2>Answers to Exercises in Lecture 1</h2>
+
+<p>
+Click on an exercise
+</p>
+
+<p>
+[ <a href="#1">1</a> | <a href="#2">2</a> | <a href="#3">3</a> | 
+<a href="#4">4</a> ]</p> 
+</div>
+
+<div class="section_div"></div>
+
+<a name="1"></a> 
+<p>
+1. Write a program disyntax1 that takes the most common elements of Stata
+syntax and displays the contents of each macro created by the <code
+class="cmd">syntax</code> command.  For example, you might use the auto
+dataset.
+</p>
+
+<pre class="codeblock"> 
+<code class="cmd">. disyntax1 mpg price = 1 using some_file if rep78!=. &amp; make=="AMC Concord" in 1/25 </code>
+
+varlist contains |mpg price|
+exp     contains |= 1 |
+using   contains |using `"some_file"'|
+if      contains |if rep78!=. &amp; make=="AMC Concord" |
+in      contains |in 1/25|
+</pre>
+
+<h4>Answer:</h4>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec1/disyntax1.ado">disyntax1.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program disyntax1
+syntax [varlist] [=exp] [using] [if] [in]
+     di
+     di `"varlist contains |`varlist'|"'
+     di `"exp     contains |`exp'|"'
+     di `"using   contains |`using'|"'
+     di `"if      contains |`if'|"'
+     di `"in      contains |`in'|"'
+end
+exit
+</code></pre></td> 
+</tr> 
+
+</table>
+
+
+<div class="section_div"></div>
+
+<a name="2"></a>
+<p>
+2. Modify the above program to also display the the following types of options,
+<code class="cmd">by()</code>, <code class="cmd">detail</code>, and <code
+class="cmd">offset()</code>. Here <code class="cmd">by()</code> should require
+a variable list, and <code class="cmd">offset</code> should accept only a
+number.  For example, you might use the auto dataset.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. disyntax2 mpg, by(foreign) detail offset(10)</code>
+	
+varlist contains |mpg|
+exp     contains ||
+using   contains ||
+if      contains ||
+in      contains ||
+by      contains |foreign|
+detail  contains |detail|
+offset  contains |10|
+</pre>
+
+<h4>Answer:</h4>
+
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec1/disyntax2.ado">disyntax2.ado</a>
+</th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program disyntax2
+syntax [varlist] [=exp] [using] [if] [in] /// 
+     [, by(varlist) detail offset(real 0) ]
+     di
+     di `"varlist contains |`varlist'|"'
+     di `"exp     contains |`exp'|"'
+     di `"using   contains |`using'|"'
+     di `"if      contains |`if'|"'
+     di `"in      contains |`in'|"'
+     di `"by      contains |`by'|"'
+     di `"detail  contains |`detail'|"'
+     di `"offset  contains |`offset'|"'
+end
+exit     
+</code></pre></td> 
+</tr> 
+
+</table>
+
+<div class="section_div"></div>
+
+<a name="3"></a>
+<p>
+3. Write a program <code class="cmd">myci1</code> that uses the returned values
+of <code class="cmd">summarize</code> to construct and display the limits of a
+95% CI for the mean.  For example, you might use the auto dataset.
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">. summ mpg</code>
+(output)
+
+<code class="cmd">. myci1   </code>
+ll = 19.979121
+ul = 22.615473
+</pre>
+
+
+<h4>Answer:</h4>
+
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec1/myci1.ado">
+myci1.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program myci1
+     syntax
+     local ul = r(mean) + invnorm(.975)*r(sd)/sqrt(r(N))
+     local ll = r(mean) - invnorm(.975)*r(sd)/sqrt(r(N))
+     di "ll = " %9.0g `ll'
+     di "ul = " %9.0g `ul'
+end
+exit     
+</code></pre></td> 
+</tr> 
+
+</table>
+
+<div class="section_div"></div>
+
+<a name="4"></a>
+<p>
+4. Modify the previous program so that it gives a meaningful error message if
+<code class="cmd">r(mean)</code> or <code class="cmd">r(sd)</code> is missing.
+</p>
+
+<h4>Answer:</h4>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec1/myci2.ado">myci2.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program myci2
+     syntax
+     if "`r(mean)'"=="" {
+          di as error "r(mean) is missing"
+          exit 198
+     }
+     if "`r(sd)'"=="" {
+          di as error "r(sd) is missing"
+          exit 198
+     }
+     local ll = r(mean)-invnorm(.975)*r(sd)/sqrt(r(N))
+     local ul = r(mean)+invnorm(.975)*r(sd)/sqrt(r(N))
+     di "ll = " %9.0g `ll'
+     di "ul = " %9.0g `ul'
+end
+exit      
+</code></pre></td> 
+</tr> 
+
+</table>
+
+<div class="section_div"></div>
+
+<div class="center">
+<h2>End of Answers to Exercises for Lecture 1</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>

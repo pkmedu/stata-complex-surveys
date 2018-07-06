@@ -1,0 +1,1133 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/08/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152 - Lecture 2 Answers to Exercises</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+<div class="section_div"></div>
+
+<div class="center">
+<img src="../images/nc152banner.gif" alt="Banner">
+
+<h2>Answers to Exercises in Lecture 2</h2>
+<p>
+Click on an exercise
+</p>
+
+<p>
+[ <a href="#1">1</a> | <a href="#2">2</a> | <a href="#3">3</a> | 
+<a href="#4">4</a> | <a href="#5">5</a> | <a href="#6">6</a> | 
+<a href="#7">7</a> | <a href="#8">8</a> ]</p>
+</div>
+
+<div class="section_div"></div>
+
+<a name="1"></a>
+<p>
+1. In developing <code class="cmd">tt_3</code>, we suggested the block of code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`by'" == "" {</code>
+     /* issue an error message, such as: */
+     <code class="cmd">display as error "by() required"
+     exit 198
+}</code>
+</pre>
+
+
+<p>
+to verify that <code class="cmd">by()</code> was specified.  Explain the
+significance of the double quotes around <code class="cmd">`by'</code>.  (Hint:
+Consider what would have happened if we had omitted the double quotes and if
+(1) the user did not specify <code class="cmd">by()</code> and (2) the user did
+specify <code class="cmd">by()</code>.)
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+We are to compare 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`by'" == "" {</code>
+</pre>
+
+<p>
+with
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if  `by'  == "" {</code>
+</pre>
+
+<p>
+I ask this question whenever the opportunity arises because I know from
+experience that this gives users problems.  Finally, once they get it, they
+invariably say, "Oh, that's really easy.  Why didn't you say so?" So, I will
+say so:  this is really easy, especially if you understand simple algebra.  If
+I show you the equation
+</p>
+
+<pre class="codeblock">
+x + 5 = 7
+</pre>
+
+<p>
+you have no trouble seeing that x = 2 and, more importantly, you still have no
+difficulty distinguishing the symbol x from the number 2.  The answer to this
+question is much the same.
+</p>
+
+<p>
+<code class="cmd">by</code> is the name of a macro and <code
+class="cmd">`by'</code> refers to the contents of the macro <code
+class="cmd">by</code>.  <code class="cmd">by</code> corresponds to x and <code
+class="cmd">`by'</code> to 2.
+</p>
+
+<p>
+In the context of our program, <code class="cmd">by</code> presumably contains
+the name of a variable, so let's consider the two cases where <code
+class="cmd">`by'</code> is <code class="cmd">foreign</code> and <code
+class="cmd">`by'</code> is nothing.
+</p>
+
+<p>
+When we type 
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">if "`by'" == "" { </code>
+</pre>
+
+
+<p>
+we ask the question whether the contents of the macro <code
+class="cmd">by</code> are literally nothing.  If <code class="cmd">by</code>
+contains <code class="cmd">foreign</code>, which is to say, the letters
+f-o-r-e-i-g-n, those letters are not the same as nothing.  In that case, <code
+class="cmd">if "`by'" == ""</code> is false.
+</p>
+
+<p>
+Now, consider what would happen if we omitted the double quotes.  Were we to
+type
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">if `by' == "" {</code>
+</pre>
+
+
+<p>
+and macro <code class="cmd">by</code> contained <code class="cmd">foreign</code>, the question becomes
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if foreign == "" {</code>
+</pre>
+
+
+<p>
+Read the statement as it is written.  Stata will interpret <code
+class="cmd">foreign</code> as the name of a variable and, in particular, will
+consider whether the first observation of variable <code
+class="cmd">foreign</code> is "".  If variable <code class="cmd">foreign</code>
+is not a string variable&#8212;it is not in the automobile data&#8212;this is a
+type-mismatch error.  If variable <code class="cmd">foreign</code> is a string
+variable, the statement is not an error, but it is not the question we intend
+to ask because, right now, we are merely trying to determine whether the macro
+<code class="cmd">by</code> contains anything.
+</p>
+
+<p>
+Now, pretend <code class="cmd">by</code> contains nothing.  The question we wish to ask is 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`by'" == "" {</code>
+</pre>
+
+<p>
+which substitutes 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "" == "" {</code>
+</pre>
+
+<p>
+and would be evaluated as true.  The macro <code class="cmd">by</code> contains
+nothing.  Had we left off the double quotes, we would have 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if  `by'  == "" {</code>
+</pre>
+
+<p>
+which becomes 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if        == "" {</code>
+</pre>
+
+<p>
+and that is a plain syntax error.
+</p>
+
+<p>
+To review, when we want to treat the contents of the macro <code
+class="cmd">by</code>, which is to say, <code class="cmd">`by'</code>, as a
+string&#8212;to examine the contents itself&#8212;we must refer to <code
+class="cmd">"`by'"</code>, which is a string.  When we want  <code
+class="cmd">`by'</code> treated as a variable or something else, we refer to
+<code class="cmd">`by'</code>.
+</p>
+
+<div class="section_div"></div>
+
+<a name="2"></a>
+
+<p>
+2. Write the command
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mygg <span class="repl">yvar xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>]</code>
+</pre>
+
+<p>
+So, here's my <code class="cmd">mygg.ado</code> file:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/mygg1.ado">mygg.ado (Q.2)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define mygg
+     syntax varlist(min=2 max=2) [if] [in]
+     tokenize `varlist'
+     local y "`1'"
+     local x "`2'"
+
+     tempvar hat
+     quietly regress `y' `x' `if' `in'
+     quietly predict `hat' `if' `in'
+
+     scatter `y' `hat' `x' `if' `in', c(. l) m(O i) sort
+end      
+</code></pre></td>
+</tr> 
+
+</table>
+
+<p>
+To address the warnings, my program will produce reasonable error messages
+if too few or too many variables are specified because I declared 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist(min=2 max=2) [if] [in]</code>
+                ^^^^^^^^^^^^^
+</pre>
+
+<p>
+meaning there must be exactly two variables specified.
+</p>
+
+<p>
+My program will respect whatever <code class="cmd">if <span
+class="repl">exp</span></code> and <code class="cmd">in <span
+class="repl">range</span></code> the user specifies, if any, because I
+remembered to put <code class="cmd">`if' `in'</code> at the end of all the
+commands that worked on the data, namely the <code class="cmd">regress</code>,
+the <code class="cmd">predict</code>, and the <code class="cmd">scatter</code>.
+</p>
+
+<div class="section_div"></div>
+
+<a name="3"></a>
+
+<p>
+3. Modify <code class="cmd">mygg</code> to allow
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mygg <span class="repl">yvar xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>] 
+[, saving(<span class="repl">filename</span>[,replace]) ]</code>
+</pre>
+
+<p>
+The <code class="cmd">saving()</code> option is <code class="cmd">scatter</code>'s saving option.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+I add a few lines and modify another:
+</p>
+
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/mygg2.ado">mygg.ado (Q.3)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define mygg
+syntax varlist(min=2 max=2) [if] [in] [, SAVing(passthru) ]
+tokenize `varlist'                /*  ^^^^^^^^^^^^^^^^^^^^^ &lt;- new */
+local y "`1'"
+local x "`2'"
+
+tempvar hat
+quietly regress `y' `x' `if' `in'
+quietly predict `hat' `if' `in'
+
+scatter `y' `hat' `x' `if' `in', ///               /* &lt;-- modified */
+c(. l) m(O i) sort `saving'
+end</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+The first thing I had to do was allow the <code class="cmd">saving()</code> option.  This I did by coding
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist(min=2 max=2) [if] [in] [, SAVing(passthru) ]</code>
+</pre>
+
+<p>
+After the <code class="cmd">syntax</code> command, macro <code
+class="cmd">saving</code> contains either nothing or whatever the user typed.
+Pretend the user specified <code class="cmd">saving(myfile)</code>; then, macro
+<code class="cmd">saving</code> contains <code
+class="cmd">saving(myfile)</code>.  If the user typed <code
+class="cmd">saving("my dir\my file", replace)</code>, then macro <code
+class="cmd">saving</code> contains <code class="cmd">saving("my dir\my file",
+replace)</code>, quotes and all.
+</p>
+
+<p>
+The final step was to add <code class="cmd">`saving'</code> to the end of my <code class="cmd">scatter</code> command:
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">scatter `y' `hat' `x' `if' `in', c(. l) m(O i) sort `saving' </code>
+</pre>
+
+
+<div class="section_div"></div>
+
+<a name="4"></a>
+<p>
+4. Modify <code class="cmd">mygg</code> to have the syntax
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">mygg <span class="repl">yvar xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>] </code>
+<code class="cmd">[, quad saving(<span class="repl">filename</span>[,replace]) ]</code>
+</pre>
+
+
+<p>
+If <code class="cmd">quad</code> (abbreviation <code class="cmd">q</code>) is
+specified, a quadratic rather than a straight line is to be drawn through the
+points.  By quadratic, we mean to fit the regression y = c + b*x + d*x^2.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+Before you write the program, the first step is to determine what it is you
+will be coding.  If the user does not specify <code class="cmd">quad</code>,
+the logic will be as before:
+</p>
+
+
+<pre class="codeblock">
+. <code class="cmd">regress</code> <span class="repl">lhsvar rhsvar</span>
+. <code class="cmd">predict</code> workvar 
+. <code class="cmd">scatter</code> <span class="repl">lhsvar</span> workvar <span class="repl">rhsvar</span>, c(. l) sort m(O i)
+</pre>
+
+
+<p>
+If the user does specify <code class="cmd">quad</code>, the logic will be
+</p>
+
+
+<pre class="codeblock">
+. <code class="cmd">gen sqvar</code> = <span class="repl">rhsvar</span>^2
+. <code class="cmd">regress</code> <span class="repl">lhsvar rhsvar</span> sqvar
+. <code class="cmd">predict</code> workvar 
+. <code class="cmd">scatter</code> <span class="repl">lhsvar</span> workvar <span class="repl">rhsvar</span>, c(. l) sort m(O i)
+</pre>
+
+
+<p>
+The corresponding code is
+</p>
+
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/mygg3.ado">mygg.ado (Q.4)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define mygg
+     syntax varlist(min=2 max=2) [if] [in] [, SAVing(passthru) Quad] 
+     tokenize `varlist'                  /*                    ^^^^ &lt;-new */
+     local y "`1'"
+     local x "`2'"
+
+     tempvar hat x2                               /* &lt;-- modified */
+     if "`quad'" != "" {                          /* &lt;-- new      */
+          quietly gen `x2'=`x'^2 `if' `in'        /* &lt;-- new      */
+          quietly reg `y' `x' `x2' `if' `in'      /* &lt;-- new      */
+     }                                            /* &lt;-- new      */
+     else {                                       /* &lt;-- new      */
+          quietly reg `y' `x' `if' `in'
+     }
+     quietly predict `hat' `if' `in'
+
+     scatter `y' `hat' `x' `if' `in', c(. l) m(O i) sort `saving' 
+end</code>      
+</pre></td>
+</tr> 
+</table>
+
+<p>
+That is, I add the option <code class="cmd">quad</code> by declaring 
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist(min=2 max=2) [if] [in] [, SAVing(passthru) Quad]</code>
+</pre>
+
+
+<p>
+After the <code class="cmd">syntax</code> command, the macro <code
+class="cmd">quad</code> contains either nothing (meaning <code
+class="cmd">quad</code> was not specified) or <code class="cmd">quad</code>
+(meaning <code class="cmd">quad</code> was specified).  When I get to running
+the regression, I ask myself whether <code class="cmd">quad</code> was
+specified and, if so, <code class="cmd">generate</code> an <code
+class="cmd">`x'</code> squared variable and run the regression on <code
+class="cmd">`x'</code> and <code class="cmd">`x2'</code>.  Otherwise, I do just
+as before and run <code class="cmd">`y'</code> on <code class="cmd">`x'</code>.
+</p>
+
+<p>
+In the <code class="cmd">tempvar</code> statement I added <code class="cmd">x2</code>,
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">tempvar pred x2</code>
+</pre>
+
+
+<p>
+even though I might never use <code class="cmd">x2</code>.  That is fine, and
+there is no cost to doing that.  <code class="cmd">tempvar</code> does not
+create the temporary variable. It merely provides a name in case I want to
+create a temporary variable later.
+</p>
+
+<div class="section_div"></div>
+
+<a name="5"></a>
+
+<p>
+5. Assume that you often estimate regressions that include
+quadratic terms. For instance, one day you might be analyzing wages and estimate
+</p>
+
+<pre class="codeblock">
+ln(wage) = c + b*age + a*age^2 + d*educ + u 
+</pre>
+
+<p>
+and another day be looking at the automobile data and estimate 
+</p>
+
+<pre class="codeblock">
+mpg = c + b*weight + a*weight^2 + d*foreign + u 
+</pre>
+
+<p>
+Anyway, you often have terms like X and X^2.  Suppose that you wish to write a
+program to help you interpret such regressions.  You would like the program to
+report
+</p>
+<ul>
+       <li>The minimum value of X and the corresponding c + b*X + a*X^2.</li>
+       <li>The maximum value of X and the corresponding c + b*X + a*X^2.</li>
+       <li>The turning point X=(&#8722;b/2a) and the corresponding c + b*X + 
+	a*X^2.</li>
+</ul>
+
+<p>
+Write program <code class="cmd">equad</code> to do this.  <code class="cmd">equad</code> is to have syntax
+</p>
+
+<pre class="codeblock">
+<code class="cmd">equad</code> varname1 varname2 [if <span class="repl">exp</span>] [in <span class="repl">range</span>]
+</pre>
+
+<p>
+where varname1 is the name of the X variable and varname2 the name of the X^2
+variable.  <code class="cmd">equad</code> is for use after <code class="cmd">regress</code> or any other estimation
+command.
+
+<p>
+Hint:  As a reminder, if X is the name of a variable in an estimated model,
+the coefficient can be obtained as <code class="cmd">_b[X]</code>.  For instance, if I
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. gen weight2 = weight^2</code>
+<code class="cmd">. regress mpg weight weight2 foreign</code>
+</pre>
+
+<p>
+the coefficient on weight is <code class="cmd">_b[weight]</code>.  The intercept
+(coefficient on the constant) is <code class="cmd">_b[_cons]</code>.
+</p>
+
+<p>
+In my version of <code class="cmd">equad</code>, I obtained the following
+output after running the indicated regression on the automobile data:
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">. equad weight weight2</code>
+
+1.591e-06*weight2 + -.01657294*weight + 56.538839
+
+          min:  weight=     1760  effect= 32.29922
+          max:  weight=     4840  effect= 13.59953
+turning point:  weight= 5207.837  effect= 13.38425
+</pre>
+
+
+<p>
+By the way, the formula for the "turning point", the point at which 
+a*X^2 + b*X + c achieves a minimum or maximum, is X = &#8722;b/2a.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+The parsing for this command is
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist(min=2 max=2) [if] [in] </code>
+<code class="cmd">tokenize `varlist'</code>
+</pre>
+
+
+<p>
+After this, I can refer to the X and X2 variables as <code
+class="cmd">`1'</code> and <code class="cmd">`2'</code>.  I personally do not
+like casting my programs in terms of things like <code class="cmd">`1'</code>
+and <code class="cmd">`2'</code> because it makes them difficult to read, so
+the next thing I will do is create macros with more mnemonic names:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local X "`1'"</code>
+<code class="cmd">local X2 "`2'"</code>
+</pre>
+
+<p>
+There is nothing subtle here; I just created two new macros named X and X2 that
+contain the same thing as <code class="cmd">`1'</code> and <code
+class="cmd">`2'</code>.  From now on, I can refer to <code
+class="cmd">`X'</code> for the X variable and <code class="cmd">`X2'</code> for
+the X2 variable.
+</p>
+
+<p>
+Along the same lines, I will define three more macros to improve readability:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local a "_b[`X2']"</code>
+<code class="cmd">local b "_b[`X']"</code>
+<code class="cmd">local c "_b[_cons]"</code>
+</pre>
+
+<p>
+Now, I can think of the quadratic as being a*X2 + b*X + c, although I must 
+remember to include the single quotes.  It will be much easier to type
+<code class="cmd">`b'</code> rather than <code class="cmd">_b[`X']</code> when I need the coefficient on X.
+</p>
+
+<p>
+I emphasize that this step of creating macros for readability is not something I
+am doing just because this is a course.  I do this in my own (real) work.
+Introducing a few extra macros may seem unnecessary, but I find I make fewer
+errors when I have convenient and readable shorthands.
+</p>
+
+<p>
+So, at this point, my program reads
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+program define equad
+     syntax varlist(min=2 max=2) [if] [in] 
+     tokenize `varlist'
+
+     local X "`1'"
+     local X2 "`2'"
+
+     local a "_b[`X2']"
+     local b "_b[`X']"
+     local c "_b[_cons]"
+</code></pre>
+
+<p>
+and I am ready to begin.  The necessary calculations are easy, so let's get
+them out of the way:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+qui summ `X' `if' `in'
+local xmin = r(min)
+local xmax = r(max)
+
+local x0 = -`b'/(2*`a')
+
+local ymin = `a'*(`xmin')^2 + `b'*(`xmin') + `c'
+local ymax = `a'*(`xmax')^2 + `b'*(`xmax') + `c'
+local y0   = `a'*(`x0'  )^2 + `b'*(`x0'  ) + `c'
+</code></pre>
+
+<p>
+Summarizing <code class="cmd">`X'</code> will get the minimum and maximum X
+values.  Obtaining the X value corresponding to the minimum or maximum of the
+quadratic is a simple formula, and then I calculate the Y values corresponding
+to each of the X values.
+</p>
+
+<p>
+All that is left is to display the results:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g `ymax'
+di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+</code></pre>
+
+<p>
+So, my completed program reads
+<p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/equad1.ado">equad.ado (Q.5)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define equad
+        syntax varlist(min=2 max=2) [if] [in]
+        tokenize `varlist'
+
+        local X "`1'"
+        local X2 "`2'"
+
+        local a "_b[`X2']"
+        local b "_b[`X']"
+        local c "_b[_cons]"
+
+        di
+        di `a' "*`X2' + " `b' "*`X' + " `c'
+        di
+
+        qui summ `X' `if' `in'
+        local xmin = r(min)
+        local xmax = r(max)
+
+        local x0 = -`b'/(2*`a')
+
+        local ymin = `a'*(`xmin')^2 + `b'*(`xmin') + `c'
+        local ymax = `a'*(`xmax')^2 + `b'*(`xmax') + `c'
+        local y0   = `a'*(`x0'  )^2 + `b'*(`x0'  ) + `c'
+
+        di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+        di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g  `ymax'
+        di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+end      
+</code></pre></td> 
+</tr> 
+</table>
+
+
+<p>
+I added one small thing in this final version.  <code class="cmd">equad</code>
+displays the quadratic under consideration just to remind me what I, as an
+<code class="cmd">equad</code> user, specified and, as a programmer, to prove
+that I have defined everything correctly.  That is the line that reads
+</p>
+
+<pre class="codeblock">
+<code class="cmd">di `a'  "*`X2' + "  `b'  "*`X' + "  `c'</code>
+    ^^^  ^^^^^^^^^^    ^^^  ^^^^^^^^^    ^^^
+</pre>
+
+<p>
+What I put inside and what outside double quotes may be confusing, so let me
+expand the line for you (assume <code class="cmd">`X'</code> contains <code
+class="cmd">weight</code> and <code class="cmd">`X2'</code> contains <code
+class="cmd">weight2</code>):
+</p>
+
+<pre class="codeblock">
+        <code class="cmd">di _b[weight2]  "*weight2 + "  _b[weight]  "*weight + "  _b[_cons]</code>
+             ^^^^^^^^^^^  ^^^^^^^^^^^^^    ^^^^^^^^^^    ^^^^^^^^^^^^    ^^^^^^^^^
+</pre>
+
+<p>
+Does that help?  Actually, I do not think of it in this way.  I just think that
+<code class="cmd">`a'</code>, <code class="cmd">`b'</code>, and <code
+class="cmd">`c'</code> contain something that, when evaluated (i.e., outside
+double quotes), equals the coefficients, and that <code class="cmd">`X'</code>
+and <code class="cmd">`X2'</code> contain the variable names (meaning that if I
+want to display the names themselves, I enclose them in double quotes).
+</p>
+
+<div class="section_div"></div>
+
+<a name="6"></a>
+<p>
+6. Pretend that you have not yet estimated a regression but
+mistakenly think that you have.  Does your <code class="cmd">equad,</code> program produce a
+reasonable error message?  Why or why not?  (Hint:  You can type <code class="cmd">discard</code>
+to make Stata forget previous estimation results, so you could experiment by
+typing <code class="cmd">discard</code> followed by <code class="cmd">equad weight weight2</code>.)
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+Let's try the suggested experiment: 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. discard</code>
+
+<code class="cmd">. equad weight weight2</code>
+_coef[weight2] not found
+r(111);
+</pre>
+
+<p>
+That's not too bad.  The important thing is that our program is safe.  Since it
+refers to <code class="cmd">_b[X]</code> and <code class="cmd">_b[X2]</code> if
+the user has not run the appropriate regression, our program will refuse to run
+and the user will not be misled.  If we wanted a better error message, we might
+modify our code to include
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture local junk = `a' + `b'
+if _rc { 
+      error 301
+}
+</code></pre>
+
+<p>
+Remember, <code class="cmd">`a'</code> contains <code
+class="cmd">_b[`X2']</code> and `b' <code class="cmd">_b[`X']</code> in my
+shorthand.  In your program, you might need to code something like 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">capture local junk = _b[`X2'] + _b[`X']</code>
+</pre>
+
+<p>
+or something else.  It is not important that I am summing the coefficients; I
+just wanted to do something that used both of them so that <code
+class="cmd">local junk = ...</code> would produce an error if either
+coefficient did not exist.  Then, I caught the error code and took my own
+action.  I chose to display <code class="cmd">error 301</code>, meaning produce
+the standard error message for rc=301 and stop the program.  I just happened to
+remember that 301 is Stata's code for <code>last estimates not found</code>, and that
+seemed particularly appropriate.  (You can look in 
+<!-- change manual --><span class="manual_entry">[P] error</span> 
+for a full listing of Stata's error codes.)
+
+</p>
+
+<div class="section_div"></div>
+
+<a name="7"></a>
+
+<p>
+7. Modify <code class="cmd">equad</code> to display the turning point on the
+correct line relative to the min and max lines.  For instance, using the
+automobile data, if I
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. gen weight2 = weight^2</code>
+
+<code class="cmd">. regress mpg weight weight2 foreign</code>
+
+<code class="cmd">. equad weight weight2</code>
+
+1.591e-06*weight2 + -.01657294*weight + 56.538839
+
+          min:  weight=     1760  effect= 32.29922
+          max:  weight=     4840  effect= 13.59953
+turning point:  weight= 5207.837  effect= 13.38425
+</pre>
+
+<p>
+it just so happens that the turning point appears on the third line, which
+I like.  On the other hand, if I run the same regression on price,
+</p>
+
+<pre class="codeblock">
+ <code class="cmd">. regress price weight weight2 foreign
+
+. equad weight weight2</code>
+
+.0011211*weight2 + -3.7145739*weight + 5526.6637
+
+          min:  weight=     1760  effect= 2461.738
+          max:  weight=     4840  effect= 13810.61
+turning point:  weight= 1656.662  effect= 2449.766
+</pre>
+
+<p>
+I would prefer the turning point line appear before the min and max lines
+because weight = 1656.662 &lt; 1760 = minimum value of weight.  In some other
+example, if the turning point weight were between 1760 and 4840, I would like
+the turning point line to appear between the min and max lines.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+This is just a simple modification of our program:
+</p>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/equad2.ado">equad.ado (Q.7)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define equad
+     syntax varlist(min=2 max=2) [if] [in]
+     tokenize `varlist'
+
+     local X "`1'"
+     local X2 "`2'"
+
+     local a "_b[`X2']"
+     local b "_b[`X']"
+     local c "_b[_cons]"
+
+     di
+     di `a' "*`X2' + " `b' "*`X' + " `c'
+     di
+
+     qui summ `X' `if' `in'
+     local xmin = r(min)
+     local xmax = r(max)
+
+     local x0 = -`b'/(2*`a')
+
+     local ymin = `a'*(`xmin')^2 + `b'*(`xmin') + `c'
+     local ymax = `a'*(`xmax')^2 + `b'*(`xmax') + `c'
+     local y0   = `a'*(`x0'  )^2 + `b'*(`x0'  ) + `c'
+
+     if `x0'&lt;`xmin' {
+          di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+          di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+          di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g `ymax'
+     }
+     else if `x0'&gt;`xmax' {
+          di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+          di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g `ymax'
+          di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+     }
+     else {
+          di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+          di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+          di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g `ymax'
+     }
+end     
+</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+The modifications are at the end:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if `x0'&lt;`xmin' {
+     ...
+}
+else if `x0'&gt;`xmax' { 
+     ...
+}
+else {
+     ...
+}I
+</code></pre>
+
+<div class="section_div"></div>
+
+<a name="8"></a>
+
+<p>
+8. Sometimes I want <code class="cmd">equad</code> to report effects, including
+the constant, and other times I do not.  That is, sometimes I want predicted
+effects calculated as a*X^2 + b*X + c, and other times I merely want the
+calculation made a*X^2 + b*X.  Modify <code class="cmd">equad</code> to have a <code class="cmd">nocons</code>
+option:
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">equad</code> varname1 varname2 [if <span class="repl">exp</span>] [in <span class="repl">range</span>] [, nocons]
+</pre>
+
+<h4>Answer:</h4>
+
+<p>
+This is an easy modification to my program, and I did not cheat by knowing I
+was going to ask this question when I wrote my earlier answer.  I write the
+questions and the answers at the same time and did not know I was going to ask
+for this generalization until I had tried <code class="cmd">equad</code>. I
+then decided this would be a useful addition.
+</p>
+
+<p>
+No matter how you wrote your code, the modification necessary to handle the
+parsing of the option is easy; modify the <code class="cmd">syntax</code> line to read
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist(min=2 max=2) [if] [in] [, noCons]</code>
+</pre>
+
+<p>
+<code class="cmd">equad</code> now allows the <code class="cmd">nocons</code>
+option (abbreviation <code class="cmd">noc</code>). It just does not do
+anything with it yet.
+</p>
+
+<p>
+In my case, I had the easy-access macros <code class="cmd">`a'</code>, <code class="cmd">`b'</code>, and <code class="cmd">`c'</code>,
+which I set up to refer to the coefficients.  Early in my code I had the line
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local c "_b[_cons]"</code>
+</pre>
+
+<p>
+and I just changed this to read 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">
+if "`cons'"==""  {         /* meaning -nocons- NOT specified */
+     local c "_b[_cons]"
+}
+else    local c 0</code>
+</pre>
+
+<p>
+I bet that in your code you did not have this shorthand.  If you did not, that
+means that later in your code you had the equivalent of
+</p>
+
+<pre class="codeblock">
+<code class="cmd">
+local ymin = _b[`X2']*(`xmin')^2 + _b[`X']*(`xmin') + _b[_cons]
+local ymax = _b[`X2']*(`xmax')^2 + _b[`X']*(`xmax') + _b[_cons]
+local y0   = _b[`X2']*(`x0'  )^2 + _b[`X']*(`x0')   + _b[_cons]</code>
+</pre>
+
+<p>
+and so you could modify this to calculate <code class="cmd">`ymin'</code>,
+<code class="cmd">`ymax'</code>, and <code class="cmd">`y0'</code> differently
+according to <code class="cmd">`nocons'</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`cons'" == "" {
+     local ymin = _b[`X2']*(`xmin')^2 + _b[`X']*(`xmin') + _b[_cons]
+     local ymax = _b[`X2']*(`xmax')^2 + _b[`X']*(`xmax') + _b[_cons]
+     local y0   = _b[`X2']*(`x0'  )^2 + _b[`X']*(`x0')   + _b[_cons]
+}
+else {
+     local ymin = _b[`X2']*(`xmin')^2 + _b[`X']*(`xmin')
+     local ymax = _b[`X2']*(`xmax')^2 + _b[`X']*(`xmax')
+     local y0   = _b[`X2']*(`x0'  )^2 + _b[`X']*(`x0')
+}</code>
+</pre>
+
+<p>
+Or perhaps you never stored <code class="cmd">`ymin'</code>, <code
+class="cmd">`ymax'</code>, and <code class="cmd">`y0'</code> but simply
+calculated them on the fly in your <code class="cmd">display</code> statement.
+That would just mean that you would have the <code class="cmd">if "`cons'" ==
+""</code> farther down in your code.
+</p>
+
+<p>
+Anyway, here's my code:
+</p>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec2/equad3.ado">equad.ado (Q.8)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define equad
+     syntax varlist(min=2 max=2) [if] [in] [, noCons]
+     tokenize `varlist'
+
+     local X "`1'"
+     local X2 "`2'"
+
+     local a "_b[`X2']"
+     local b "_b[`X']"
+     local c "_b[_cons]"
+     if "`cons'"==""  {          /* meaning nocons NOT specified */
+          local c "_b[_cons]"
+     }
+     else    local c 0
+
+          di
+          di `a' "*`X2' + " `b' "*`X' + " `c'
+          di
+
+          local x0 = -`b'/(2*`a')
+
+          qui summ `X' `if' `in'
+          local xmin = r(min)
+          local xmax = r(max)
+
+          local ymin = `a'*(`xmin')^2 + `b'*(`xmin') + `c'
+          local ymax = `a'*(`xmax')^2 + `b'*(`xmax') + `c'
+          local y0   = `a'*(`x0'  )^2 + `b'*(`x0'  ) + `c'
+
+          if `x0'&lt;`xmin' {
+               di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+               di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+               di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g  `ymax'
+          }
+          else if `x0'&gt;`xmax' {
+               di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+               di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g  `ymax'
+               di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+          }
+          else {
+               di "          min:  `X'=" %9.0g `xmin' "  effect=" %9.0g `ymin'
+               di "turning point:  `X'=" %9.0g `x0'   "  effect=" %9.0g `y0'
+               di "          max:  `X'=" %9.0g `xmax' "  effect=" %9.0g  `ymax'
+         }
+end</code>
+</pre></td> 
+</tr> 
+
+</table>
+
+<div class="section_div"></div>
+
+<div class="center">
+<h2>End of Answers to Exercises for Lecture 2</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>
+                                 

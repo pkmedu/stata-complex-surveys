@@ -1,0 +1,608 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 06/27/07 tmb -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152 - Lecture 4 Answers to Exercises</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+<div class="section_div"></div>
+
+<div class="center">
+<img src="../images/nc152banner.gif" alt="Banner">
+
+<h2>Answers to Exercises in Lecture 4</h2>
+<p>
+Click on an exercise
+</p>
+
+<p>
+[ <a href="#1">1</a> | <a href="#2">2</a> | <a href="#3">3</a> | 
+<a href="#4">4</a> | <a href="#5">5</a> ]</p>
+</div>
+
+<div class="section_div"></div>
+
+<a name="1"></a>
+<p>
+1. Fix <code class="cmd">mytt</code> as we last left it in the <a
+href="exer2.html">Exercises to Lecture 2</a> ( it is attached below), to return
+<code class="cmd">r(t)</code> and <code class="cmd">r(df)</code>.  Remember,
+<code class="cmd">mytt</code> is now implemented in terms of <code
+class="cmd">mytti</code>, so first fix <code class="cmd">mytti</code> to return
+<code class="cmd">r(t)</code> and <code class="cmd">r(df)</code> and then fix
+<code class="cmd">mytt</code> to return those values.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+This was really pretty easy.  Most of the routines just needed an <code class="cmd">rclass</code>
+option on the <code class="cmd">program</code> and a <code class="cmd">return add</code> added at the right place.
+For instance, all I did to change program <code class="cmd">mytt</code> in <code class="cmd">mytt.ado</code>,
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+program mytt
+     syntax varname [=/exp] [if] [in] [, BY(varname) *]
+
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+               tt_2 `0'
+          }
+     }
+end
+</code></pre>
+
+<p>
+was change 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytt
+</code></pre>
+
+<p>
+to
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytt, rclass
+</code></pre>
+
+<p>
+and then add 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+return add
+</code></pre>
+
+<p>
+right before the <code class="cmd">end</code>.  What I'm doing is assuming that
+<code class="cmd">tt_1, tt_2,</code> and <code class="cmd">tt_3</code> are
+changed to return <code class="cmd">r(df)</code> and <code
+class="cmd">r(t)</code>, so all I need to do is pick up their returned values.
+</p>
+
+<p>
+Anyway, the changes were all of this form until I got to <code
+class="cmd">mytti.ado</code>, where the values finally are defined.  There, I
+started with things that looked like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     args n xbar s eqsign mu
+     
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+     
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+and changed them to read 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i, rclass
+    args n xbar s eqsign mu
+        
+    return scalar t = (`xbar'-`mu')*sqrt(`n')/`s'
+    return scalar df = `n' - 1
+        
+    di "t(" return(df) ") = " return(t)
+end</code>
+</pre>
+
+<p>
+Anyway, here it is:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec4/mytt1.ado">mytt1.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program mytt, rclass
+        syntax varname [=/exp] [if] [in] [, BY(varname) *]
+
+        if "`exp'"=="" {
+                tt_3 `0'
+        }
+        else {
+                capture confirm number `exp'
+                if _rc==0 {
+                        tt_1 `0'
+                }
+                else {
+                        tt_2 `0'
+                }
+        }
+        ret add
+end
+
+program tt_1, rclass
+        syntax varname =/exp [if] [in]
+        quietly {
+                quietly summarize `varlist' `if' `in'
+                local n = r(N)
+                local xbar = r(mean)
+                local s = r(sd)
+        }
+        mytti `n' `xbar' `s' = `exp'
+        ret add
+end
+
+program tt_2, rclass
+        syntax varname =/exp [if] [in]
+
+        tempvar diff
+        quietly gen `diff' = `varlist' - (`exp') `if' `in'
+        tt_1 `diff' = 0 `if' `in'
+        ret add
+end
+
+program tt_3, rclass
+        syntax varname [if] [in], BY(varname) [*]
+
+        /* ---------------------------------------------------- */
+                                        /* Mark the             */
+                                        /* to-use subsample     */
+        marksample touse
+
+        /* ---------------------------------------------------- */
+                                        /* make group variable  */
+                                        /* and verify 2 groups  */
+        tempvar group
+        sort `touse' `by'
+        quietly by `touse' `by': gen `group'=1 if _n==1 &amp; `touse'
+        quietly replace `group' = sum(`group') if `touse'
+        if `group'[_N]!=2 {
+                di as error "`by' must take on two values"
+                exit 198
+        }
+
+        /* ---------------------------------------------------- */
+                                        /* create calculation   */
+                                        /* ingredients          */
+
+        quietly summarize `varlist' if `group'==1 &amp; `touse'
+        local n1 = r(N)
+        local x1 = r(mean)
+        local s1 = r(sd)
+
+        quietly summarize `varlist' if `group'==2 &amp; `touse'
+        local n2 = r(N)
+        local x2 = r(mean)
+        local s2 = r(sd)
+
+        mytti `n1' `x1' `s1' = `n2' `x2' `s2', `options'
+        ret add
+end      
+</code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<a name="2"></a>
+<p>
+2. Explain why the following does not work:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg</code> 
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     mpg |      74     21.2973   5.785503         12         41  
+
+<code class="cmd">. mytti r(N) r(mean) r(sd) = 20</code>
+'r' found where integer expected
+r(7);
+</pre>
+
+<p>
+Explain why the following does work:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg </code>
+[output omitted]
+
+<code class="cmd">. mytti `r(N)' `r(mean)' `r(sd)' = 20</code>
+t(73) = 1.9289201
+</pre>
+
+<h4>Answer:</h4>
+
+<p>
+We wrote <code class="cmd">mytti</code>, so its behavior should not be a
+mystery to us.  Just in case it is, however, we could <code class="cmd">set
+trace on</code> and discover the problem:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. set trace on</code>
+<code class="cmd">. mytti r(N) r(mean) r(sd) = 20</code>
+
+---------------------------------------------------------------- begin mytti ---
+ tokenize "`0'", parse(" =,")
+	= tokenize "r(N) r(mean) r(sd) = 20", parse(" =,")
+	- IsObs `1'
+	= IsObs r(N)
+---------------------------------------------------------- begin mytti.IsObs ---
+	  - args n
+	  - confirm integer number `n'
+	  = confirm integer number r(N)
+	'r' found where integer expected
+------------------------------------------------------------ end mytti.IsObs ---
+------------------------------------------------------------------ end mytti ---
+r(7);
+</pre>
+
+
+<p>
+Of course&#8212;we wrote <code class="cmd">mytti</code> to accept numeric
+arguments.  The characters <code>r(N)</code> do not constitute a number&#8212;They are the
+characters r followed by ( followed by N followed by ).  <code
+class="cmd">r(N)</code> is the expression that, if evaluated, evaluates to the
+number of observations.
+</p>
+
+<p>
+Next we are to explain why 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg</code>
+
+<code class="cmd">. mytti `r(N)' `r(mean)' `r(sd)' = 20</code>
+</pre>
+
+
+<p>
+does work. After typing <code class="cmd">summarize mpg</code>, I suggest you
+type <code class="cmd">return list</code> to see what <code
+class="cmd">summarize</code> stored.  You will discover that <code
+class="cmd">r(N), r(mean),</code> and <code class="cmd">r(sd)</code> are
+scalars.  Now remember how the <code class="cmd">r()</code> function works:  if
+we put <code class="cmd">r()</code> in single quotes&#8212;if we type <code
+class="cmd">`r()'</code>&#8212;the function is evaluated and the literal number
+substituted in its place.  Thus <code class="cmd">`r(N)'</code> is the
+character string <code>73</code> and something like <code>73</code> is what our program expects.
+</p>
+
+<p>
+The point is that if you are writing a program and if you want
+to pass a returned result to a subroutine that expects numeric arguments, you
+can quote the returned result but not expressions of the returned result.
+</p>
+
+<div class="section_div"></div>
+
+<a name="3"></a>
+<p>
+3. In <a href="exer2.html#4">Exercise 4 of Lecture 2</a>, we wrote <code
+class="cmd">predexp</code> to create a new variable containing the predictions
+of the mean y after a regression of ln(y).  As such, <code
+class="cmd">predexp</code> was our first example of a post-estimation command.
+In this lecture, we emphasized that we should ensure that a post-estimation
+command is not accidentally misused by verifying that the stored estimates are
+what they are supposed to be.  Since our command is for use after <code
+class="cmd">regress</code>, the lecture recommended we include the code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`e(cmd)'" != "regress" {
+     error 301
+}</code>
+</pre>
+
+<p>
+The <code class="cmd">predexp</code> program contains no such lines:
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+program predexp
+     syntax newvarname [if] [in]
+     tempvar new
+
+     quietly { 
+          local s2 = e(rmse)^2
+          tempvar pred
+          predict double `pred' `if' `in'
+          gen `typlist'  `new' = exp(`pred')*exp(`s2'/2)
+          rename `new' `varlist'
+     }
+end
+</code></pre>
+
+
+<p>
+What happens if <code class="cmd">predexp</code> is misused?  Explain.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+Try it after, say, <code class="cmd">logistic</code>.  You get a variable with
+all missing values.  Why?  Because <code class="cmd">logistic</code> does not
+save <code class="cmd">e(rmse)</code> so, in our program, <code
+class="cmd">e(rmse)</code> evaluates to missing value.
+</p>
+
+<div class="section_div"></div>
+
+<a name="4"></a>
+<p>
+4. <code class="cmd">linreg</code> has one problem:  it does not produce correct
+results in the presence of collinear variables.  For instance, if you
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. generate new = mpg </code>
+
+<code class="cmd">. linreg price mpg new foreign</code>
+</pre>
+
+<p>
+the coefficients are correct but the standard errors, t-statistics, significance
+levels, and confidence intervals are incorrect.  This is all caused by the line
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local k     = rowsof(`XX')</code>
+</pre>
+
+<p>
+Fix it.
+</p>
+
+<p>
+Hint:  The problem of collinear variables arises, numerically, when inverse
+matrices are calculated:  X'X is not a full-rank matrix.  Stata's <code
+class="cmd">invsym()</code> function is prepared to deal with such matrices.
+In the case of a singular matrix, <code class="cmd">invsym()</code> drops
+collinear rows and columns until the matrix can be inverted.  <code
+class="cmd">invsym()</code> returns a matrix that is physically k &#215; k, but
+it sets diagonal elements to 0 where the corresponding variable was dropped.
+That is, in the lines
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local k     = rowsof(`XX')</code>
+<code class="cmd">mat `XXinv' = invsym(`XX') </code>
+</pre>
+
+<p>
+matrix <code class="cmd">`XXinv'</code> will be physically k &#215; k but may
+contain zeros on the diagonal.  For our calculation formulas , k is the number
+of estimated parameters (or, the rank of X'X), which is to say, the number of
+nonzero elements on the diagonal of <code class="cmd">`XXinv'</code>.
+</p>
+
+<p>
+Hint 2:  Find out about the <code class="cmd">diag0cnt()</code> function.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+Where the two lines 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local k     = rowsof(`XX')</code> 
+<code class="cmd">mat `XXinv' = invsym(`XX')</code> 
+</pre>
+
+<p>
+appear, we want to substitute
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mat `XXinv' = invsym(`XX') </code>
+<code class="cmd">local k = rowsof(`XXinv') - diag0cnt(`XXinv')</code>
+</pre>
+
+<p>
+Thus the improved <code class="cmd">linreg.ado</code> reads
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec4/linreg1.ado">linreg1.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program linreg, eclass
+        local options "Level(integer `c(level)')"
+        if replay() {
+                if "`e(cmd)'" != "linreg" {
+                        error 301
+                }
+                syntax [, `options']
+        }
+        else {
+		syntax varlist(min=2) [if] [in] [, `options']
+		tempname YXX XX Xy yy XXinv b V
+		mat accum `YXX' = `varlist' `if' `in'    /* (y X)'(y X)   */
+		local n = r(N)
+                matrix `XX' = `YXX'[2...,2...]           /* extract X'X   */
+		matrix `Xy' = `YXX'[2...,1]              /* extract X'y   */
+		scalar `yy' = `YXX'[1,1]
+/* -&gt; */        mat `XXinv' = invsym(`XX')               /* X'X inverse   */
+/* -&gt; */        local k     = rowsof(`XXinv')-diag0cnt(`XXinv') /* define k */
+                matrix `b'  = (`XXinv' * `Xy')'          /* coefs, row    */
+
+		matrix `V'  = (`yy'-`b'*`Xy')/(`n'-`k') * `XXinv'
+                local df    = `n'-`k'
+
+                ereturn post `b' `V', dof(`df') obs(`n')
+                ereturn local cmd "linreg"
+        }
+        display  /* a blank line */
+	ereturn display
+end      
+</code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<a name="5"></a>
+<p>
+5. Change <code class="cmd">logisreg</code> to allow an <code class="cmd">or</code> option that
+would report odds ratios (exponentiated coefficients) rather than the
+coefficients themselves.  Start with the improved version of
+<code class="cmd">logisreg.ado</code>.
+</p>
+
+<p>
+Hint:  Note that <code class="cmd">ml display</code> has an <code
+class="cmd">eform()</code> option.  Specify option <code
+class="cmd">eform(or)</code> on that statement and you will have the results
+you want.  So now you just have to figure out how to get <code
+class="cmd">eform(or)</code> on that statement when you want it there.
+</p>
+
+<h4>Answer:</h4>
+
+<p>
+This was straightforward, the trick being to remember that the <code
+class="cmd">or</code> is a playback option.  The changed lines are marked with
+/* &lt;- */.
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="/courses/nc152-10/lec4/linreg2.ado">linreg2.ado (improved) </a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program logisreg, eclass
+        local options "Level(integer `c(level)') OR"                /* &lt;- */
+        if replay() {
+                if "`e(cmd)'" != "logisreg" {
+                        error 301
+                }
+                syntax [, `options']
+        }
+        else {
+                syntax varlist [if] [in] [, `options']
+                marksample touse
+
+                tokenize `varlist'
+                local lhs "`1'"
+                mac shift
+                local rhs "`*'"
+
+                ml model lf logis_ll (`lhs'=`rhs') if `touse', ///
+                        max title("my logistic")
+                ereturn local cmd "logisreg"         
+        }
+        if "`or'" != "" {                                         /* &lt;- */
+                local eform "eform(Odds Ratio)"                   /* &lt;- */
+        }                                                         /* &lt;- */
+        ml display, `eform' level(`level')                       /* &lt;- */
+end</code></pre></td> 
+</tr> 
+</table>
+
+<div class="section_div"></div>
+
+<div class="center">
+<h2>End of Answers to Exercises for Lecture 4</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td>
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>
+                 
