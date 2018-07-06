@@ -1,0 +1,2466 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/08/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152&#8212;Lecture 2</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+<div class="center">
+<table class="ncbanner">
+<tr>
+<td><img src="../images/lecture2v.gif" alt="Lecture 2"></td>
+<td><img src="../images/nc152banner.gif" alt="Banner"></td>
+</tr>
+</table>
+</div>
+<div class="section_div"></div>
+
+<h2><a name="toc"></a>Lecture 2 - Table of Contents</h2>
+
+<div class="main_section"><a href="#quotes">1. Quotes</a></div>
+<div class="main_section"><a href="#development">2. Development continues</a></div>
+<div class="main_section"><a href="#temporary">3. Temporary variables</a></div>
+<div class="main_section"><a href="#continues">4. Development continues</a></div>
+<div class="main_section"><a href="#aside">5. An aside concerning r()</a></div>
+<div class="main_section"><a href="#programming">6. Programming the formulas</a></div>
+<div class="main_section"><a href="#putting">7. Putting it together</a></div>
+<div class="main_section"><a href="#exercises">8. Exercises</a></div>
+
+<div class = section_div></div>
+
+<h3><a name="quotes"></a>1. Quotes</h3>
+
+<p>
+In this lecture, I want to pick up right where we left off at the end of 
+<a href="nc152-l1.html">Lecture 1</a>. Just as a reminder, here is what our
+program, <code>mytt.ado</code>, looked like:
+</p>
+
+<table class="standard">
+
+<tr>
+<th class="standard">ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec2/mytt.ado">mytt.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program mytt
+syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+               tt_2 `0'
+          }
+     }
+end
+
+program tt_1
+     display "tt_1 `0'"
+end
+
+program tt_2
+     display "tt_2 `0'"
+end
+
+program tt_3
+     display "tt_3 `0'"
+end
+</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+Our program does have one little problem:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. describe</code>
+
+
+Contains data from fake_data.dta
+  obs:            50                          
+ vars:             2                          <!-- change date -->25 Apr 2007 13:30
+ size:           550 (99.9% of memory free)
+-------------------------------------------------------------------------------
+              storage  display     value
+variable name   type   format      label      variable label
+-------------------------------------------------------------------------------
+value           byte   %9.0g                  
+sex             str6   %9s                    
+-------------------------------------------------------------------------------
+Sorted by:  
+
+
+<code class="cmd">. list in 1/5</code>
+
+     +----------------+
+     | value      sex |
+     |----------------|
+  1. |    10     male |
+  2. |    29   female |
+  3. |    22     male |
+  4. |    12     male |
+  5. |    19     male |
+     +----------------+
+
+
+<code class="cmd">. mytt value = 15 if sex=="male"</code>
+tt_1 value = 15 if sex==male"" invalid name
+r(198);
+</pre>
+
+<p>
+Note the odd message returned from <code class="cmd">mytt</code>, when we were
+hoping to see 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt value = 15 if sex=="male"</code>
+tt_1 value = 15 if sex=="male"
+</pre>
+
+<p>
+Now this problem is not very important. We have not yet filled in the bulk of
+our code, and maybe the problem will just vanish.  But I want to use this
+little problem to (1) show you how to find where the problem is occurring in
+your code and (2) provide an excuse to have a long aside about how to use
+double quotes.
+</p>
+
+<p>
+Let's find out where the error is occurring.  Here is what we want to do:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. set trace on</code>                        (start a trace)
+
+<code class="cmd">. mytt value = 15 if sex=="male"</code>      (issue command giving problem)
+
+<code class="cmd">. set trace off  </code>                     (stop the trace)
+</pre>
+
+<p>
+When you <code class="cmd">set trace on</code>, Stata shows you the lines of
+your program as it executes them:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. set trace on</code>
+
+<code class="cmd">. mytt value = 15 if sex=="male"</code>
+
+. mytt value = 15 if sex=="male"
+---------------------------------------------------------------- begin mytt ---
+- syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+- if "`exp'"=="" {
+= if "15 "=="" {
+  tt_3 `0'
+  }
+- else {
+- capture confirm number `exp'
+= capture confirm number 15 
+- if _rc==0 {
+- tt_1 `0'
+= tt_1 value = 15 if sex=="male"
+----------------------------------------------------------- begin mytt.tt_1 ---
+  - display "tt_1 `0'"
+  = display "tt_1 value = 15 if sex=="male""
+tt_1 value = 15 if sex==male"" invalid name
+------------------------------------------------------------- end mytt.tt_1 ---
+  }
+  else {
+  tt_2 `0'
+  }
+  }
+------------------------------------------------------------------- end mytt ---
+r(198);
+
+<code class="cmd">. set trace off</code>
+</pre>
+
+<p>
+Stata puts a hyphen (-) in front of lines that it executes and omits the hyphen
+when the line is skipped.  Why would lines be skipped?  Because our program
+might say that <code class="cmd">if x==1</code> and if x is not equal to 1, the
+subsequent lines should not be executed (but they should be listed).
+</p>
+
+<p>
+You should go over this trace to understand all of it.  I'll start you off:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt value = 15 if sex=="male"</code>
+- syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+</pre>
+
+<p>
+Explanation:  we type <code class="cmd">mytt value = 15 if sex=="male"</code>,
+and Stata starts execution of <code class="cmd">mytt</code>.  The first line is
+<code class="cmd">syntax</code>.  Stata executes that.  
+</p>
+
+<pre class="codeblock">
+- if "`exp'"=="" {
+= if "15 "=="" {
+  tt_3 `0'
+  }
+</pre>
+
+<p>
+The next line is <code class="cmd">if "`exp'"=="" {</code>, and Stata executes
+that.  Since the line contains a macro, Stata repeats the line, beginning the
+line with a =, and expands any macros contained in the line. Evidently, the
+condition is not true because Stata merely lists (without executing) the next
+two lines.
+</p>
+
+<p>
+You can continue on your own, up to 
+</p>
+
+<pre class="codeblock">
+----------------------------------------------------------- begin mytt.tt_1 ---
+  - display "tt_1 `0'"
+  = display "tt_1 value = 15 if sex=="male""
+tt_1 value = 15 if sex==male"" invalid name
+------------------------------------------------------------- end mytt.tt_1 ---
+  }
+  else {
+  tt_2 `0'
+  }
+	  }
+------------------------------------------------------------------ end mytt ---
+r(198);
+</pre>
+
+<p>
+Stata executes <code class="cmd">display "tt_1 `0'"</code>, which results in an
+error message.  Stata is unhappy, so it stops executing our program and skips
+lines to get back out.
+</p>
+
+<p>
+So, we now know exactly what line is causing the problem.  It is the line
+</p>
+
+<pre class="codeblock">
+- display "tt_1 `0'"
+</pre>
+
+<p>
+Our trace tells us that the line is in our subprogram 
+<code class="cmd">tt_1</code>.  We have found the problem, and now we only 
+have to answer the question, "What is wrong with 
+<code class="cmd">display "tt_1 `0'"</code>?"
+</p>
+
+<p>
+There is nothing obviously wrong with the statement, but it does have a
+mistake.  Again, the trace provides the information we need by expanding the
+macros and displaying the line of code with all of the substitutions.
+</p>
+
+<p>
+Do you see the problem?  Look at the double-quotes:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">display "tt_1 value = 15 if sex=="male""</code>
+        /                            /      \
+      quote                        quote     and two more quotes!
+</pre>
+
+<p>
+Stata pairs quotes in the order they occur, open-close, open-close, but that
+is not what we want.  We want
+</p>
+
+<pre class="codeblock"><code class="cmd">
+display &lt;OPENQUOTE&gt;tt_1 value = 15 if sex=="male"&lt;CLOSEQUOTE&gt;
+</code></pre>
+
+<p>
+We do not want 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+display &lt;OPENQUOTE&gt;tt_1 value = 15 if sex==&lt;CLOSEQUOTE&gt;male""
+</code></pre>
+
+<p>
+More generically, what does "A"B"C" mean?  It could mean 
+</p>
+
+<p>
+"A" followed by B followed by "C";          i.e., (A)B(C)
+</p>
+
+<p>
+or
+</p>
+
+<p>
+the quoted string A"B"C;                    i.e., (A(B)C).
+</p>
+
+<p>
+As far as Stata is concerned, it means the former, but we want the latter.
+</p>
+
+<p>
+For such instances, Stata provides another set of double quote characters:
+</p>
+
+<p>
+`"        for open double quote
+</p>
+
+<p>
+"'        for close double quote
+</p>
+
+<p>
+These are called compound double quotes, and you can use them any place you can
+use double quotes.  The advantage of compound double quotes is that they, like
+parentheses, can be matched up.  
+</p>
+
+<p>
+What does "A"B"C" mean?  It means <code class="cmd">`"A"'B`"C"'</code>, or it
+means <code class="cmd">`"A`"B"'C"'</code>.  Yes, it is difficult to read, but
+the meaning is clear enough.
+</p>
+
+<p>
+You can mix compound double quotes with the usual double quotes:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">display `"tt_1 value = 15 if sex=="male""'</code>
+           ^                           ^    ^ ^
+           (                           (    ) )
+</pre>
+
+<p>
+Our <code class="cmd">tt_1</code> program reads 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     display "tt_1 `0'"
+end
+</code></pre>
+
+<p>
+but it would better read 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     display `"tt_1 `0'"'
+end
+</code></pre>
+
+<p>
+That is, I have changed the double quotes around the text 
+<code class="cmd">tt_1 `0'</code> to compound double quotes.
+</p>
+
+<p>
+It would better read that way because <code class="cmd">`0'</code> itself might
+contain quotes (compound or normal).  Using compound double quotes to enclose
+the text we want to display makes our intention clear:  we want to list the
+text <code class="cmd">tt_1 `0'</code>.
+</p>
+
+<p>
+Understand that you can use compound double quotes anywhere double quotes are
+appropriate.  Using Stata interactively, you could type
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. scatter mpg weight, title(`"mpg versus weight"')
+</code></pre>
+
+<p>
+although users seldom do, and in fact, our manuals barely mention compound
+double quotes.  Interactively, the only reason to use compound double quotes
+would be to create a title that itself contained double quotes, such as,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. scatter mpg weight, title(`""mpg" versus "weight""')
+</code></pre>
+
+<p>
+We programmers, however, who must interpret what users type, should use
+compound double quotes in our programs whenever we wish to quote something 
+that might also contain quotes. That is why we should code 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">display `"tt_1 `0'"'</code>
+</pre>
+
+<p>
+and not 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">display "tt_1 `0'"</code>
+</pre>
+
+<p>
+<code class="cmd">`0'</code> is what the user typed, and that itself might
+contain double quotes.
+</p>
+
+<p>
+You can, if you wish, use compound double quotes everywhere in your programs,
+although I seldom do that.  For instance, in <code>mytt.ado</code>
+there is a block of code that reads 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`exp'"=="" {
+     tt_3 `0'
+}
+</code></pre>
+
+<p>
+which would better read 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if `"`exp'"'==`""' {
+     tt_3 `0'
+}
+</code></pre>
+
+<p>
+but I would probably code 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">
+if `"`exp'"'=="" {</code>          /* &lt;- I type "" rather than `""' */
+<code class="cmd">     tt_3 `0'</code>
+<code class="cmd">}</code>       
+</pre>
+
+<p>
+because the second pair of quotes does not contain a string with (even
+potentially) double quotes.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="development"></a>2. Development continues</h3>
+<p>
+Let's fill in the code for <code class="cmd">tt_1</code>, which accepts the
+syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1 varname = # [if exp] [in range]
+</code></pre>
+
+<p>
+and the formula for the test is 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+t = (xbar - #)*sqrt(n)/s
+</code></pre>
+
+<p>
+which is distributed t(n&minus;1), where n is the number of observations and
+xbar and s are the mean and standard deviation of varname.  Thus the first
+draft of code for the real <code class="cmd">tt_1</code> might read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varname =/exp [if] [in] 
+     quietly {
+          summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+If you copy this into <code>mytt.ado</code> and try it with the
+automobile data, 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20</code>
+t(73) = 1.9289201
+</pre>
+
+<p>
+which is the same answer as given by the real <code class="cmd">ttest</code>
+command: 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ttest mpg == 20</code>
+
+One-sample t test
+------------------------------------------------------------------------------
+Variable |     Obs        Mean    Std. Err.   Std. Dev.   [95% Conf. Interval]
+---------+--------------------------------------------------------------------
+     mpg |      74     21.2973    .6725511    5.785503     19.9569    22.63769
+------------------------------------------------------------------------------
+    mean = mean(mpg)                                              t =   1.9289
+Ho: mean = 20                                    degrees of freedom =       73
+
+    Ha: mean &lt; 20               Ha: mean != 20                 Ha: mean &gt; 20
+ Pr(T &lt; t) = 0.9712         Pr(|T| &gt; |t|) = 0.0576          Pr(T &gt; t) = 0.0288
+</pre>
+
+<p>
+We could improve <code class="cmd">tt_1</code> by having it report the
+significance level of the test and perhaps show all the other useful things
+shown by <code class="cmd">ttest</code>, but I'll leave that to you.
+</p>
+
+<p>
+Also, note that our command works with <code class="cmd">if <span class="repl">exp</span></code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20 if foreign</code>
+t(21) = 3.3860902
+</pre>
+
+<p>
+Understand how this comes about.  First, we allowed the user to type something
+like <code class="cmd">if foreign</code> by specifying 
+<code class="cmd">[if]</code> on the <code class="cmd">syntax</code> command.  
+After parsing, local macro <code class="cmd">`if'</code> contains the 
+<code class="cmd">if <span class="repl">exp</span></code> typed by the user 
+(such as, <code class="cmd">if foreign</code>), or it contains nothing.  
+To calculate our t-statistic, we needed certain summary statistics, which we 
+obtained from the <code class="cmd">summarize</code> command:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' `if' `in'
+</code></pre>
+
+<p>
+The <code class="cmd">quietly</code> suppressed 
+<code class="cmd">summarize</code>'s output.  The 
+<code class="cmd">`if'</code> on the end of the command came directly from the 
+user.  When the user typed <code class="cmd">mytt mpg=20 if foreign</code>, 
+this command became
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize mpg if foreign
+</code></pre>
+
+<p>
+because <code class="cmd">`varlist'</code> contained 
+<code class="cmd">mpg</code>, <code class="cmd">`if'</code> contained 
+<code class="cmd">if foreign</code>, and <code class="cmd">`in'</code> 
+contained nothing.  If the user types <code class="cmd">mytt mpg=20</code>, 
+the command becomes
+</p>
+
+<pre class="codeblock">
+<code class="cmd">quietly summarize mpg</code>
+</pre>
+
+<p>
+because now <code class="cmd">`if'</code> contains nothing, too.
+</p>
+
+<p>
+Another thing to note about our program is that we parse what the user types
+twice.  We first parse it in <code class="cmd">mytt</code> itself:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+</code></pre>
+
+<p>
+Note all the options that we allow.  Nevertheless, 
+<code class="cmd">mytt</code> generates an error if we try to specify one of 
+these options in the first syntax:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20, by(foreign)</code>
+options not allowed
+r(101);
+</pre>
+
+<p>
+How does it know this?  The first parse is just to switch us between the
+subprograms <code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>, and
+<code class="cmd">tt_3</code>.  Once <code class="cmd">mytt</code> determined
+this was syntax 1, <code class="cmd">mytt</code> executed 
+<code class="cmd">tt_1 `0'</code>, which passed along what the user originally 
+typed to program <code class="cmd">tt_1</code> and then parsed what it received:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname =/exp [if] [in] </code>
+</pre>
+
+<p>
+This second parsing is more restrictive in that it does not allow options.  On
+this second <code class="cmd">syntax</code> the <code>options not allowed</code> error was
+produced.  That was treated as an error by <code class="cmd">syntax</code>,
+which stopped executing the <code class="cmd">tt_1</code> program (return code
+101).  <code class="cmd">mytt</code> now resumed executing, noting that 
+<code class="cmd">tt_1 `0'</code> failed (return code 101), and that in turn 
+stopped <code class="cmd">mytt</code>.
+</p>
+
+<p>
+Anyway, that is why I was not concerned earlier that our generic, merged syntax
+diagram let too much through.  I knew that, once we went to the appropriate
+subroutine, we would reparse the arguments more restrictively.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="temporary"></a>3. Temporary variables</h3>
+
+<p>
+The syntax of <code class="cmd">tt_2</code> is to be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_2 varname1 = varname2 [if exp] [in range]
+</code></pre>
+
+<p>
+<code class="cmd">tt_2</code> is an easy program to write because testing that
+the mean of varname1 equals varname2 amounts to a test that the mean of the
+difference equals 0.  The basic logic of <code class="cmd">tt_2</code> is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gen double diff = varname1-varname2
+tt_1 diff = 0
+</code></pre>
+
+<p>
+We always use <code class="cmd">gen double</code> for intermediate variables in
+calculations to ensure that the highest available precision is used to store
+intermediate results.
+</p>
+
+<p>
+There are some minor details, such as the 
+<code class="cmd">if <span class="repl">exp</span></code> and 
+<code class="cmd">in <span class="repl">range</span></code>, and we do not
+really want to create a variable named <code class="cmd">diff</code> in our
+program because the user might already have a variable so named, but those
+problems are easily surmounted:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_2
+     syntax varname =/exp [if] [in]
+
+     tempvar diff
+     quietly gen double `diff' = `varlist' - (`exp') `if' `in'
+     tt_1 `diff' = 0 `if' `in'
+end
+</code></pre>
+
+<p>
+As I have coded it, we store the difference in a TEMPORARY variable called
+<code class="cmd">`diff'</code>.  Note carefully the surrounding single quotes.
+The temporary variable is not named <code class="cmd">diff</code> but is named
+<code class="cmd">`diff'</code>, meaning the contents of the local macro named
+<code class="cmd">diff</code>.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar diff
+</code></pre>
+
+<p>
+created that macro.  Stata placed a name into <code class="cmd">`diff'</code>
+that we could use.  That variable probably has some ugly name such as 
+<code>__000002</code> but that is Stata's business, not ours.  
+All we need to know is that <code class="cmd">`diff'</code> contains a name we 
+can use.  <code class="cmd">tempvar diff</code> did not create a temporary 
+variable but merely gave us a name that we could use to create a temporary 
+variable if we so desire.  We did in the next line:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly gen double `diff' = `varlist' - (`exp') `if' `in'
+</code></pre>
+
+<p>
+Assume that the user typed <code class="cmd">mytt price=weight</code>, and
+assume that <code class="cmd">tempvar</code> stored the name 
+<code>__000002</code> in <code class="cmd">`diff'</code>.  After
+substitution, this command reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly gen double __000002 = price - (weight)
+</code></pre>
+
+<p>
+and the next line
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1 `diff' = 0 `if' `in'
+</code></pre>
+
+<p>
+reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1 __000002 = 0
+</code></pre>
+
+<p>
+You see, there are no miracles here. Each command, after substitution, is a
+simple (if ugly) Stata command:  we create the difference in 
+<code>__000002</code>, and then test that 
+<code>__000002</code> has a mean of 0.  
+</p>
+
+<p> In fact, it is instructive to add a <code class="cmd">describe</code> to
+our <code class="cmd">tt_2</code> program before it ends:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_2
+     syntax varname =/exp [if] [in]
+     tempvar diff
+     quietly gen double `diff' = `varlist' - (`exp') `if' `in'
+     tt_1 `diff' = 0 `if' `in'
+     describe                      /* &lt;- new */
+end
+</code></pre>
+
+<p>
+If we try <code class="cmd">mytt</code> now, 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt price=weight</code>
+t(73) = 10.351483
+
+<!-- change version # -->Contains data from C:\Stata10\ado\base/a/auto.dta
+  obs:            74                          1978 Automobile Data
+ vars:            12                          <!--change date-->25 Apr 2007 13:53
+ size:         3,478 (99.9% of memory free)
+------------------------------------------------------------------------
+              storage  display     value
+variable name   type   format      label      variable label
+------------------------------------------------------------------------
+make            str18  %-18s                  Make and Model
+price           int    %8.0gc                 Price
+mpg             int    %8.0g                  Mileage (mpg)
+rep78           int    %8.0g                  Repair Record 1978
+headroom        float  %6.1f                  Headroom (in.)
+trunk           int    %8.0g                  Trunk space (cu. ft.)
+weight          int    %8.0gc                 Weight (lbs.)
+length          int    %8.0g                  Length (in.)
+turn            int    %8.0g                  Turn Circle (ft.) 
+displacement    int    %8.0g                  Displacement (cu. in.)
+gear_ratio      float  %6.2f                  Gear Ratio
+foreign         byte   %8.0g       origin     Car type
+__000001        double %10.0g                 
+------------------------------------------------------------------------
+Sorted by:  foreign  
+</pre>
+
+<p>
+Note that the 13th variable is <code>__000001</code>.  Yet, after
+typing <code class="cmd">mytt mpg=price</code>, if I typed 
+<code class="cmd">describe</code> at the Stata prompt, the variable would 
+be gone:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. describe</code>
+
+<!-- change version # -->Contains data from C:\Stata10\ado\base/a/auto.dta
+  obs:            74                          1978 Automobile Data
+ vars:            12                          <!--change date-->25 Apr 2007 13:53
+ size:         3,478 (99.9% of memory free)
+-------------------------------------------------------------------------------
+              storage  display     value
+variable name   type   format      label      variable label
+-------------------------------------------------------------------------------
+make            str18  %-18s                  Make and Model
+price           int    %8.0gc                 Price
+mpg             int    %8.0g                  Mileage (mpg)
+rep78           int    %8.0g                  Repair Record 1978
+headroom        float  %6.1f                  Headroom (in.)
+trunk           int    %8.0g                  Trunk space (cu. ft.)
+weight          int    %8.0gc                 Weight (lbs.)
+length          int    %8.0g                  Length (in.)
+turn            int    %8.0g                  Turn Circle (ft.) 
+displacement    int    %8.0g                  Displacement (cu. in.)
+gear_ratio      float  %6.2f                  Gear Ratio
+foreign         byte   %8.0g       origin     Car type
+-------------------------------------------------------------------------------
+Sorted by:  foreign 
+</pre>
+
+<p>
+The variable is gone because we obtained the name from 
+<code class="cmd">tempvar</code>.  When our program ended, Stata automatically
+looked at the dataset for a variable with the name it had given to us and then
+dropped it.
+</p>
+
+<p>
+Temporary variables have several advantages over simply picking a name for the
+variable at random.  If you choose a name at random:
+</p>
+
+<ul>
+<li> You might choose a name that exists in the user's dataset.</li>
+
+<li> It becomes your responsibility to drop that variable when the program
+completes.</li>
+
+<li> When the user describes his or her data, it will say <code>
+dataset has changed since last saved</code>.  
+<code class="cmd">describe</code> will say this because it
+has observed a new variable being added to the data and later a variable being
+dropped, and <code class="cmd">describe</code> is not smart enough to observe
+that it is the same variable.  If you use a real temporary variable, Stata
+knows the change does not count.</li>
+</ul>
+
+<p>
+Anyway, taking out the <code class="cmd">describe</code> line, the output of
+our program is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt price=weight</code>
+t(73) = 10.351483
+</pre>
+
+<p>
+which is the same result given by the real <code class="cmd">ttest</code>
+command:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ttest price == weight</code>
+
+Paired t test
+------------------------------------------------------------------------------
+Variable |     Obs        Mean    Std. Err.   Std. Dev.   [95% Conf. Interval]
+---------+--------------------------------------------------------------------
+   price |      74    6165.257    342.8719    2949.496    5481.914      6848.6
+  weight |      74    3019.459    90.34692    777.1936    2839.398    3199.521
+---------+--------------------------------------------------------------------
+    diff |      74    3145.797    303.8982    2614.231    2540.129    3751.466
+------------------------------------------------------------------------------
+     mean(diff) = mean(price - weight)                            t =  10.3515
+ Ho: mean(diff) = 0                              degrees of freedom =       73
+
+ Ha: mean(diff) &lt; 0           Ha: mean(diff) != 0           Ha: mean(diff) &gt; 0
+ Pr(T &lt; t) = 1.0000         Pr(|T| &gt; |t|) = 0.0000          Pr(T &gt; t) = 0.0000
+
+</pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="continues"></a>4. Development continues</h3>
+
+<p>
+We have left only to write <code class="cmd">tt_3</code>, which will have the
+syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_3 varname [if exp] [in range], by(groupvar) [unequal welch]
+</code></pre>
+
+<p>
+Use the notation
+</p>
+
+<pre class="codeblock">
+x1 = mean of varname in the first group<br>
+s1 = standard deviation of varname in the first group<br>
+n1 = number of observations in the first group 
+</pre>
+
+<p>
+and let x2, s2, and n2 be defined similarly.  Also, it will be convenient to
+define
+</p>
+
+<pre class="codeblock">
+V1 = s1^2/n1
+</pre>
+
+<p>
+and
+</p>
+
+<pre class="codeblock">
+V2 = s2^2/n2
+</pre>
+
+<p>
+Then, the formula for the t-statistics is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+t = (x1-x2)/(sqrt(((n1-1)*s1^2 + (n2-1)*s2^2)/(n1+n2-2))*sqrt(1/n1+1/n2))
+</code></pre>
+
+<p>
+under the assumption of equal variances and 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+t = (x1-x2)/sqrt(V1 + V2)
+</code></pre>
+
+<p>
+otherwise.
+</p>
+
+<p>
+In the equal-variance case, t is distributed with (n1+n2&minus;2) degrees of
+freedom, and in the second, the degrees of freedom are either
+</p>
+
+<pre class="codeblock"><code class="cmd">
+(V1+V2)^2 / ( V1^2/(n1-1) + V2^2/(n2-1) )
+</code></pre>
+
+<p>
+using the Satterthwaite formula, or 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+-2 + (V1+V2)^2/( V1^2/(n1+1) + V2^2/(n2+1) )
+</code></pre>
+
+<p>
+using Welch's.
+</p>
+
+<p>
+In writing this program, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_3 varname [if exp] [in range], by(groupvar) [unequal welch]
+</code></pre>
+
+<p>
+we face several difficulties.  Our program must
+</p>
+
+<ol>
+<li>Verify that <code class="cmd">by()</code> is specified</li>
+
+<li>Verify that the argument of the specified <code class="cmd">by()</code> is a variable in
+the dataset</li>
+
+<li>Verify that the <code class="cmd">by()</code> variable divides the data into two groups</li>
+
+<li>Specifying <code class="cmd">welch</code> implies specifying <code class="cmd">unequal</code></li>
+
+<li>Use different formulas according to the options specified</li>
+</ol>
+
+<p>
+So, before assembling the program, let's consider each of these problems and
+understand how to solve each one using Stata.  Our program will begin by
+parsing what the user typed according to
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in] [, BY(varlist) UNEqual Welch] </code>
+</pre>
+
+<ol>
+<li>
+<p>
+Verify that <code class="cmd">by()</code> is specified.
+</p>
+
+<p>
+There are two ways to solve this problem.  One way is to change the location of
+the square brackets in our <code class="cmd">syntax</code> command to make it
+explicit that <code class="cmd">by()</code> is not optional:
+</p>
+
+<p>
+We change
+</p>
+
+<pre class="codeblock"><code class="cmd"> 
+syntax varname [if] [in] [, BY(varlist) UNEqual Welch]
+</code></pre>
+
+<p>
+to
+</p>
+
+<pre class="codeblock"><code class="cmd">syntax varname [if] [in], BY(varlist) [UNEqual Welch]
+</code></pre>
+
+<p>
+That is the best way to handle the problem.
+</p>
+
+<p>
+An alternative is not to modify our <code class="cmd">syntax</code> command,
+leaving <code class="cmd">by()</code> optional at the parsing step, and then to
+include code verifying that <code class="cmd">by()</code> was specified.  After
+<code class="cmd">syntax</code>, local macro <code class="cmd">`by'</code> will
+contain what the user typed or nothing if <code class="cmd">by()</code> was not
+specified:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`by'" == "" {</code>
+     /* issue an error message, such as: */
+     <code class="cmd">display as error "by() required"</code>
+     <code class="cmd">exit 198</code>
+<code class="cmd">}</code>
+</pre>
+
+<p>
+Understand the plethora of quotes around <code class="cmd">by</code>:  
+<code class="cmd">`by'</code> is the contents of the local macro named 
+<code class="cmd">by</code>, and <code class="cmd">"`by'"</code> is the contents
+surrounded by double quotes.  Let's consider the case where the user did not
+specify the <code class="cmd">by()</code> option.  Then, 
+<code class="cmd">`by'</code> contains nothing, and the first line of the if 
+block reads
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "" == "" {</code>
+</pre>
+
+<p>
+That statement is true, so the contents of the block will be executed.  Our
+program will display <code>by() required</code> and issue a return code of 
+198.  It is really not necessary to <code class="cmd">exit 198</code> as 
+opposed to <code class="cmd">exit <span class="repl">some other nonzero number</span></code>, but 198 is the
+number Stata ordinarily uses to flag a syntax error, so it would be nicer if we
+followed the standard.  Having our program <code class="cmd">exit</code> with
+no number following the <code class="cmd">display as error</code> would be a
+bad idea, however, because that would indicate that the command completed
+successfully.  If the user were using our <code class="cmd">mytt</code> command
+in another program, or in a do-file, he would want his program or do-file to
+stop because of the error, and exiting with a nonzero number is the way we make
+that happen.
+</p>
+
+<p> 
+Now consider what happens when the user does specify 
+<code class="cmd">by()</code>.  Say the user typed 
+<code class="cmd">mytt ... by(foreign)</code>.  The macro 
+<code class="cmd">`by'</code> contains <code class="cmd">foreign</code>, 
+and the opening line of the block reads
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "foreign" == "" {</code>
+</pre>
+
+<p>
+The string <code>"foreign"</code> is most certainly not equal to "", so the 
+<code class="cmd">if</code> is skipped.
+</p>
+</li>
+
+<li> 
+<p>
+Verify that the argument of the specified <code class="cmd">by()</code> is a
+variable in the dataset.
+</p>
+
+<p>
+Because we code 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in], BY(varlist) [UNEqual Welch] </code>
+                               ^^^^^^^^^^^
+</pre>
+
+<p>
+we know that <code class="cmd">by()</code> contains a list of variables.  In
+fact, we may wish to restrict our program to allow only one variable in the
+<code class="cmd">by()</code>.  We can do that by coding
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in], BY(varname) [UNEqual Welch] </code>
+</pre>
+
+<p>
+or by coding 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in], BY(varlist max=1) [UNEqual Welch] 
+</code>
+</pre>
+</li>
+
+<li>
+<p>
+Verify that the <code class="cmd">by()</code> variable divides the data
+into two groups.
+</p>
+
+
+<p>
+By this point, we know that <code class="cmd">`by'</code> contains one and only
+one variable, and we need to verify that it divides that data into two groups.
+This is a pure Stata problem, and there are lots of possible solutions.
+</p>
+
+<p>
+One way is to <code class="cmd">tabulate `by'</code> and verify that 
+<code class="cmd">r(r)==2</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly tabulate `by' `if' `in'
+if r(r)!=2 {
+     di as error "`by' must take on two values"
+     exit 198
+}
+</code></pre>
+
+<p>
+Another is to obtain the minimum and maximum of <code class="cmd">`by'</code>,
+verify that the minimum is not equal to the maximum (meaning 
+<code class="cmd">`by'</code> takes on one value), and then verify that all the
+values in the data are the minimum or maximum (or are missing):
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `by' `if' `in'
+if r(min)==r(max) {
+     di as error "`by' is a constant"
+     exit 198
+}
+capture assert `by'==r(min) | `by'==r(max) | `by'==.
+if _rc != 0 {
+     di as error "`by' must take on two values"
+     exit 198
+}
+</code></pre>
+
+<p>
+Perhaps a third way occurs to you.  There is nothing, really, to recommend one
+of these approaches over the other.  The <code class="cmd">tabulate</code>
+approach requires fewer lines, but if <code class="cmd">summarize</code> is
+what occurred to you (and it was the first thing that occurred to me), that it
+takes a few more lines does not matter.
+</p>
+
+<table class ="technote">
+<tr>
+<td>
+<h3><a name="aside"></a>5. An aside concerning r()</h3>
+
+<p>
+I can remember that <code class="cmd">summarize</code> stores means, minimums,
+and maximums, but like everyone, I have trouble remembering that the mean is
+stored in <code class="cmd">r(mean)</code>, the minimum in 
+<code class="cmd">r(min)</code>, and the maximum in 
+<code class="cmd">r(max)</code>.
+There is a trick for finding out what stores what without looking at the
+documentation.  I have a Stata session going in another window as I write this,
+so I jump over to the Stata session and try <code class="cmd">summarize</code>.
+Then I type <code class="cmd">return list</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg</code>
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     mpg |      74     21.2973   5.785503         12         41  
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(N)        =  74
+       r(sum_w)    =  74
+       r(mean)     =  21.2972972972973
+       r(Var)      =  33.47204738985561
+       r(sd) =  5.785503209735141    
+       r(min)      =  12
+       r(max)      =  41
+       r(sum)      =  1576
+</pre>
+
+<p>
+<code class="cmd">return list</code> shows what is stored in 
+<code class="cmd">r()</code> right now.  I can compare the numbers stored 
+with the output.
+</p>
+
+</td>
+</tr>
+                                                                                
+</table>
+
+<li>
+<p>
+Specifying <code class="cmd">welch</code> implies specifying 
+<code class="cmd">unequal</code>
+</p>
+
+<p>
+This is easy.  After parsing, if the user specified 
+<code class="cmd">welch</code>, <code class="cmd">`welch'</code> contains 
+"welch". If <code class="cmd">`welch'</code> is not "" we then set 
+<code class="cmd">`unequal'</code> to "unequal".  
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`welch'"!=""  {
+	local unequal "unequal"
+}
+</code></pre>
+</li>
+
+<li>
+<p>
+Use different formulas according to the options specified.
+</p>
+
+<p>
+This is just a variation on item 4:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`unequal'"=="" {
+     /* logic for equal variance case */
+}
+else {
+     if "`welch'"=="" {
+           /* logic for Satterthwaite formula */
+     }
+     else {
+           /* logic for Welch formula */
+     }
+}
+</code></pre>
+
+</li>
+
+</ol>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+
+<h3><a name="programming"></a>6. Programming the formulas</h3>
+
+<p>
+This item was not on our earlier list, but it could have been.  Let's not get
+deeply into the formulas themselves, as they are not difficult. Instead, let's
+ask how we will get the ingredients for the formulas.  Regardless of the
+particular formula, they all depend on knowing
+</p>
+
+<pre class="codeblock">
+n1, n2    the number of observations
+m1, m2    the means 
+s1, s2    the standard deviations
+</pre>
+
+<p>
+How will we get these values?  The easy answer is 
+<code class="cmd">summarize</code>.  One way we could get them is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize <span class="repl">the variable</span> if <span class="repl">group 1</span>
+local n1 = r(N)
+local m1 = r(mean)
+local s1 = r(sd)
+summarize <span class="repl">the variable</span> if <span class="repl">group 2</span>
+local n2 = r(N)
+local m2 = r(mean)
+local s2 = r(sd)
+</code></pre>
+
+<p>
+Given how we will parse the input, 
+<span class="repl">the variable</span> above is simply 
+<code class="cmd">`varlist'</code>.  Remember, the syntax is 
+<code class="cmd">tt_3 <span class="repl">the variable</span>, by(...)</code>, 
+which we will parse using <code class="cmd">syntax varname...</code>, so 
+<code class="cmd">`varlist'</code> will contain the name of the
+<span class="repl">the variable</span> specified by the user:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if <span class="repl">group 1</span>
+...
+summarize `varlist' if <span class="repl">group 2</span>
+</code></pre>
+
+<p>
+How will we code <code class="cmd">if <span class="repl">group 1</span></code> 
+and <code class="cmd">if <span class="repl">group 2</span></code>?  
+Just as we did in the <code class="cmd">summarize</code> approach to verify 
+that <code class="cmd">`by'</code> divides the data into two groups, we could 
+use the minimum and maximum:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `by' `if' `in'
+local min = r(min)
+local max = r(max)
+
+summarize `varlist' if `by'==`min'
+...
+summarize `varlist' if `by'==`max'
+</code></pre>
+
+<p>
+If we use the <code class="cmd">summarize</code> approach to verify that 
+<code class="cmd">`by'</code> divides the data into two pieces, we would not 
+even have to introduce an extra <code class="cmd">summarize</code> because we 
+could save <code class="cmd">`min'</code> and <code class="cmd">`max'</code>.
+</p>
+
+<p>
+There is, however, one remaining problem.  What happens if the user specifies
+an <code class="cmd">if <span class="repl">exp</span></code>?  Our syntax
+diagram allows it:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_3 varname [if exp] [in range], by(groupvar) [unequal welch]
+</code></pre>
+
+<p>
+Adding <code class="cmd">`if' `in'</code> to the end of the 
+<code class="cmd">summarize</code>, as we would ordinarily
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' `if' `in'
+...
+summarize `varlist' if `by'==`max' `if' `in'
+</code></pre>
+
+<p>
+will not work because if <code class="cmd">`if'</code> contains something (such
+as <code class="cmd">if foreign</code>), this would expand to
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' if foreign
+...
+summarize `varlist' if `by'==`max' if foreign
+</code></pre>
+
+<p>
+That is a syntax error because it contains two <code class="cmd">if</code>s.
+There are two solutions to this problem:
+</p>
+
+<ol>
+<li> 
+<p>
+Create a new (temporary) variable (say, <code class="cmd">`touse'</code>
+... read "to use") equal to 1 if in the sample (
+<code class="cmd">if foreign</code>) and 0 otherwise:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse 
+generate `touse' = 0 
+replace `touse'=1 `if' `in'
+		
+summarize `varlist' if `by'==`min' &amp; `touse'
+...
+summarize `varlist' if `by'==`max' &amp; `touse'
+</code></pre>
+</li>
+
+<li>
+<p>
+Somehow strip away the second <code class="cmd">if</code> and replace it with
+<code class="cmd">&amp;</code>.
+
+</li>
+
+</ol>
+
+<p>
+The second approach requires some programming, and in a minute, I am going to
+pursue it just because it is a real test of one's understanding of macros.
+Nonetheless, I strongly recommend approach 1. I will have more to say about
+that approach later.
+</p>
+
+<p>
+Approach 2 is more work for me as a programmer but is theoretically faster
+because no new variable has to be created in the dataset.  In this approach, we
+code our syntax statement as 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if/] [in], BY(varlist max=1) [UNEqual Welch]</code> 
+                    ^
+                  (the slash is new)
+</pre>
+
+<p>
+The slash at the end of <code class="cmd">if</code> changes what is
+subsequently stored in <code class="cmd">`if'</code>.  Without the slash, 
+<code class="cmd">`if'</code> contains nothing or 
+<code class="cmd">if <span class="repl">exp</span></code>, as appropriate.  
+With the slash, <code class="cmd">`if'</code> contains nothing or just 
+<code class="cmd"><span class="repl">exp</span></code>.  
+This is just like <code class="cmd">[=exp]</code> and 
+<code class="cmd">[=/exp]</code>, 
+and one way to think about this is that the slash says 
+"delete what's to the left before storing".
+</p>
+
+<p>
+Anyway, with the slash, if the user types <code class="cmd">if foreign</code>
+at the end of our command, <code class="cmd">`if'</code> will contain not 
+<code class="cmd">if foreign</code> but simply <code class="cmd">foreign</code>.
+Thus, conditional on the user having specified something, the 
+<code class="cmd">summarize</code> statements could be coded
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; (`if') `in'
+...
+summarize `varlist' if `by'==`max' &amp; (`if') `in'
+</code></pre>
+
+<p>
+The parentheses around the <code class="cmd">`if'</code> are important because
+what the user typed might be complicated.  Suppose that the user typed 
+<code class="cmd">if foreign | mpg&gt;10</code>.  Without the parentheses, 
+this would become
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; foreign | mpg&gt;10
+...                   
+summarize `varlist' if `by'==`max' &amp; foreign | mpg&gt;10
+                                   ^^^^^^^^^^^^^^^^^^
+</code></pre>
+
+<p>
+Read the statement as typed.  I have underscored the binding on the second
+statement for emphasis.  We would obtain summary statistics for the sample
+<code class="cmd">`by'==`max'</code> and <code class="cmd">foreign</code> plus
+the sample <code class="cmd">mpg&gt;10</code>.  With the parentheses,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; (foreign | mpg&gt;10)
+...
+summarize `varlist' if `by'==`max' &amp; (foreign | mpg&gt;10)
+</code></pre>
+
+<p>
+we get what we want.
+</p>
+
+<p>
+Now, the problem with 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; (`if') `in'
+...
+summarize `varlist' if `by'==`max' &amp; (`if') `in'
+</code></pre>
+
+<p>
+arises when <code class="cmd">`if'</code> contains nothing because then we
+obtain 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; ()
+...
+summarize `varlist' if `by'==`max' &amp; ()
+</code></pre>
+
+<p>
+which is a syntax error.  The way around that problem is, after parsing, to
+create a new macro with the appropriate contents
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`if'" != "" {
+     local andif "& (`if')"
+}
+</code></pre>
+
+<p>
+Then we can write our <code class="cmd">summarize</code> lines as 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' `andif' `in'
+...
+summarize `varlist' if `by'==`max' `andif' `in'
+</code></pre>
+
+<p>
+If the user specified no <code class="cmd">if <span class="repl">exp</span>
+</code>, <code class="cmd">`andif'</code> contains nothing, and this becomes
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min'
+...
+summarize `varlist' if `by'==`max'
+</code></pre>
+
+<p>
+If the user specified, say, <code class="cmd">if foreign</code>, 
+<code class="cmd">`andif'</code> contains <code>&amp; (foreign)</code>, 
+and the lines become
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min' &amp; (foreign)
+...
+summarize `varlist' if `by'==`max' &amp; (foreign)
+</code></pre>
+
+<p>
+So this solution is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax varname [if/] [in], BY(varlist max=1) [UNEqual Welch] 
+if "`if'" != "" {
+     local andif "&amp; (`if')"
+}
+...
+summarize `varlist' if `by'==`min' `andif' `in'
+...
+summarize `varlist' if `by'==`max' `andif' `in'
+</code></pre>
+
+<p>
+I am not going to pursue this approach.  Instead, I favor 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varname [if] [in], BY(varlist max=1) [UNEqual Welch] </code>
+...                            /* note, *NO* slash */
+<code class="cmd">tempvar touse </code>
+<code class="cmd">quietly generate `touse' = 0 </code>
+<code class="cmd">quietly replace `touse' = 1 `if' `in'</code>
+<code class="cmd">...</code>
+<code class="cmd">summarize `varlist' if `by'==`min' &amp; `touse'</code>
+<code class="cmd">...</code>
+<code class="cmd">summarize `varlist' if `by'==`max' &amp; `touse'</code>
+</pre>
+
+<p>
+It's a little more work for Stata, but it is easier to understand, which means
+it is less likely to contain an error.
+</p>
+
+<p>
+In fact, this idea of introducing a <code class="cmd">`touse'</code> variable
+to mark the sample is so commonly used that Stata provides some extra
+assistance.  A while back, we at StataCorp discovered that the most common
+error we made in writing ado-files was failing to restrict to the specified
+sample throughout a calculation.  Often we would need to obtain a summary
+statistic on a subsample of a subsample, and we would accidentally code
+something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `varlist' if `by'==`min'
+...
+summarize `varlist' if `by'==`max'
+</code></pre>
+
+<p>
+forgetting the user's 
+<code class="cmd">if <span class="repl">exp</span></code> and 
+<code class="cmd">in <span class="repl">range</span></code> 
+restrictions altogether.
+</p>
+
+<p>
+This led us to introduce a new convention:  All our code, except for the very
+simplest, would mark the sample to be used early on, the variable would be
+called <code class="cmd">`touse'</code>, and <code class="cmd">`touse'</code>
+would be used subsequently throughout the code.  At the same time, we added a
+new command to the internals of Stata to make it easy to create 
+<code class="cmd">`touse'</code>.  Rather than coding 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse
+quietly generate `touse' = 0 
+quietly replace `touse' = 1 `if' `in'
+</code></pre>
+
+<p>
+this new command allowed us to code 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse
+mark `touse' `if' `in'
+</code></pre>
+
+<p>
+This is not much shorter, but the <code class="cmd">mark</code> command is very 
+fast.  <code class="cmd">mark</code> creates a byte variable containing
+0s and 1s.  You can try it interactively:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mark one </code>
+
+<code class="cmd">. summarize one</code>
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     one |      74           1          0          1          1  
+
+<code class="cmd">. mark two if mpg&gt;20 </code>
+
+<code class="cmd">. summarize two </code>
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     two |      74    .4864865   .5032291          0          1  
+
+
+<code class="cmd">. describe one two </code>
+
+13. one          byte   %8.0g                
+14. two          byte   %8.0g                
+</pre>
+
+<p>
+The command is simple:  
+<code class="cmd">mark <span class="repl">varname</span></code> by itself
+creates <span class="repl">varname</span> containing all 1s.  
+<code class="cmd">mark <span class="repl">varname</span> if <span class="repl">exp</span></code> 
+creates <span class="repl">varname</span> containing 1s in the specified sample and 0 elsewhere.  Hence,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mark `touse' `if' `in'
+</code></pre>
+
+<p>
+has exactly the same effect as 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly generate byte `touse' = 0 
+quietly replace `touse' = 1 `if' `in'
+</code></pre>
+
+<p>
+except it is shorter and faster.
+</p>
+
+<p>
+Returning to my story, remember that because we at Stata made so many errors
+restricting calculations to the relevant sample, we decided that we would mark
+the sample early in our code,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse 
+quietly generate `touse' = 0 
+quietly replace `touse' = 1 `if' `in'
+</code></pre>
+
+<p>
+and later we made changes to Stata (adding <code class="cmd">mark</code>) to
+make our code look a little prettier.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse
+mark `touse' `if' `in'
+</code></pre>
+
+<p>
+The final step of this process was to add <code class="cmd">marksample</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax ...
+marksample touse
+</code></pre>
+
+<p>
+<code class="cmd">marksample</code> is just a variation on 
+<code class="cmd">mark</code>, except that it figures out which observations 
+to mark in and out of the sample, based on the <code class="cmd">syntax</code>
+statement.  Also, note that <code class="cmd">marksample</code> creates the
+name of the temporary variable for itself.  You do not code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse
+marksample `touse'
+</code></pre>
+
+<p>
+You code 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+marksample touse
+</code></pre>
+
+<p>
+Whether you use <code class="cmd">mark</code> or 
+<code class="cmd">marksample</code> really does not make any difference.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="putting"></a>7. Putting it together</h3>
+<p>
+With all of this, we are ready to assemble <code class="cmd">tt_3</code>.  The
+program is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program tt_3</code>
+<code class="cmd">syntax varname [if] [in], BY(varname) [UNEqual Welch]</code>
+                
+/* ---------------------------------------------------- */
+                                /* Mark the             */
+                                /* to-use subsample     */
+<code class="cmd">marksample touse</code>
+
+/* ---------------------------------------------------- */
+                                 /* Verify <code class="cmd">`by'</code> divides */
+                                 /* data into 2 groups  */
+<code class="cmd">quietly tabulate `by' if `touse'</code>
+<code class="cmd">if r(r)!=2 {</code>
+     <code class="cmd">di as error "`by' must take on two values"</code>
+     <code class="cmd">exit 198</code>
+<code class="cmd">}</code>
+
+/* ---------------------------------------------------- */
+                                  /* Verify <code class="cmd">welch</code> and  */
+                                  /* set <code class="cmd">unequal</code>         */
+<code class="cmd">
+if "`welch'"!=""  {
+      local unequal "unequal"
+}
+</code>
+/* ---------------------------------------------------- */
+                                /* create calculation   */
+                                /* ingredients          */
+<code class="cmd">quietly summarize `by' if `touse' </code>
+<code class="cmd">local min = r(min)</code>
+<code class="cmd">local max = r(max)</code>
+
+<code class="cmd">quietly summarize `varlist' if `by'==`min' &amp; `touse'</code>
+<code class="cmd">local n1 = r(N)</code>
+<code class="cmd">local x1 = r(mean)</code>
+<code class="cmd">local s1 = r(sd)</code>
+<code class="cmd">local v1 = r(Var)</code>
+<code class="cmd">local V1 = r(Var)/`n1'</code>
+
+<code class="cmd">quietly summarize `varlist' if `by'==`max' &amp; `touse'</code>
+<code class="cmd">local n2 = r(N)</code>
+<code class="cmd">local x2 = r(mean)</code>
+<code class="cmd">local s2 = r(sd)</code>
+<code class="cmd">local v2 = r(Var)</code>
+<code class="cmd">local V2 = r(Var)/`n2'</code>
+
+/* ---------------------------------------------------- */
+                                /* Perform calculation  */
+
+<code class="cmd">if "`unequal'"=="" {</code>            /* ... equal Var case  */
+     <code class="cmd">local d = `n1'+`n2'-2</code>
+     <code class="cmd">local t = (`x1'-`x2') / (              ///</code>
+     <code class="cmd">sqrt(((`n1'-1)*`v1' +                  ///</code>
+     <code class="cmd">(`n2'-1)*`v2')/`d') *                  ///</code>
+     <code class="cmd">sqrt(1/`n1'+1/`n2')                    ///</code>
+     <code class="cmd">)</code>
+<code class="cmd">}</code>
+<code class="cmd">else { </code>                        /* ... unequal Var case */
+     <code class="cmd"> local t = (`x1'-`x2')/sqrt(`V1' + `V2')</code>
+     <code class="cmd">if "`welch'"=="" {</code>
+          <code class="cmd">local d = (`V1'+`V2')^2 / (       ///</code>
+          <code class="cmd">`V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///</code>
+          <code class="cmd">)</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">local d = -2 + (`V1'+`V2')^2 /   /// </code>
+          <code class="cmd">( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )</code>
+     <code class="cmd">}</code>
+<code class="cmd">}</code>
+/* ---------------------------------------------------- */
+                                /* display result       */
+     <code class="cmd">di "t(" `d' ") = " `t'</code>
+<code class="cmd"> end</code>
+</pre>
+
+
+<p>
+Substituting this into <code>mytt.ado</code>, we get
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg, by(foreign)</code>
+t(72) = -3.6308484
+</pre>
+
+<p>
+which matches the answer produced by the real <code class="cmd">ttest</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ttest mpg, by(foreign)</code>
+
+Two-sample t test with equal variances
+------------------------------------------------------------------------------
+   Group |     Obs        Mean    Std. Err.   Std. Dev.   [95% Conf. Interval]
+---------+--------------------------------------------------------------------
+Domestic |      52    19.82692     .657777    4.743297    18.50638    21.14747
+ Foreign |      22    24.77273     1.40951    6.611187    21.84149    27.70396
+---------+--------------------------------------------------------------------
+combined |      74     21.2973    .6725511    5.785503     19.9569    22.63769
+---------+--------------------------------------------------------------------
+    diff |           -4.945804    1.362162               -7.661225   -2.230384
+------------------------------------------------------------------------------
+    diff = mean(Domestic) - mean(Foreign)                         t =  -3.6308
+Ho: diff = 0                                     degrees of freedom =       72
+
+    Ha: diff &lt; 0                 Ha: diff != 0                 Ha: diff &gt; 0
+ Pr(T &lt; t) = 0.0003         Pr(|T| &gt; |t|) = 0.0005          Pr(T &gt; t) = 0.9997
+</pre>
+
+<p>
+If we allow the variances to be unequal, we get
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg, by(foreign) unequal</code>
+t(30.546278) = -3.1796852
+</pre>
+
+<p>
+which also matches the correct answer:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ttest mpg, by(foreign) unequal</code>
+
+Two-sample t test with unequal variances
+------------------------------------------------------------------------------
+   Group |     Obs        Mean    Std. Err.   Std. Dev.   [95% Conf. Interval]
+---------+--------------------------------------------------------------------
+Domestic |      52    19.82692     .657777    4.743297    18.50638    21.14747
+ Foreign |      22    24.77273     1.40951    6.611187    21.84149    27.70396
+---------+--------------------------------------------------------------------
+combined |      74     21.2973    .6725511    5.785503     19.9569    22.63769
+---------+--------------------------------------------------------------------
+    diff |           -4.945804    1.555438               -8.120053   -1.771556
+------------------------------------------------------------------------------
+    diff = mean(Domestic) - mean(Foreign)                         t =  -3.1797
+Ho: diff = 0                     Satterthwaite's degrees of freedom =  30.5463
+
+    Ha: diff &lt; 0                 Ha: diff != 0                 Ha: diff &gt; 0
+ Pr(T &lt; t) = 0.0017         Pr(|T| &gt; |t|) = 0.0034          Pr(T &gt; t) = 0.9983
+
+</pre>
+
+<p>
+And finally, if we want unequal variances using the Welch degree-of-freedom
+formula, we get
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg, by(foreign) unequal welch</code>
+t(31.420935) = -3.1796852
+</pre>
+
+<p>
+which also matches <code class="cmd">ttest</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ttest mpg, by(foreign) unequal welch</code>
+
+Two-sample t test with unequal variances
+------------------------------------------------------------------------------
+   Group |     Obs        Mean    Std. Err.   Std. Dev.   [95% Conf. Interval]
+---------+--------------------------------------------------------------------
+Domestic |      52    19.82692     .657777    4.743297    18.50638    21.14747
+ Foreign |      22    24.77273     1.40951    6.611187    21.84149    27.70396
+---------+--------------------------------------------------------------------
+combined |      74     21.2973    .6725511    5.785503     19.9569    22.63769
+---------+--------------------------------------------------------------------
+    diff |           -4.945804    1.555438                -8.11642   -1.775188
+------------------------------------------------------------------------------
+    diff = mean(Domestic) - mean(Foreign)                         t =  -3.1797
+Ho: diff = 0                             Welch's degrees of freedom =  31.4209
+
+    Ha: diff &lt; 0                 Ha: diff != 0                 Ha: diff &gt; 0
+ Pr(T &lt; t) = 0.0017         Pr(|T| &gt; |t|) = 0.0033          Pr(T &gt; t) = 0.9983
+
+</pre>
+
+<p>
+Our program works.
+</p>
+
+<table class ="technote"> 
+<tr>
+
+<td>
+<h4>Aside:</h4>
+<p>
+Our program works, but it did not work the first time I tried it when I was
+developing this lecture.  The first time I ran it, I got the error
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg, by(foreign)</code>
+Unknown function re()
+r(133);
+</pre>
+
+<p>
+I had a typographical error.  So, I <code class="cmd">set trace on</code> and
+tried it again, watching the code execute.  When it stopped and gave the error,
+the line directly above the message was the one with the problem.  I use an
+editor called <code class="cmd">vi</code>, so I fixed the problem by typing
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. set trace off</code>
+
+<code class="cmd">. !vi mytt.ado </code>                  (enter my editor)
+
+<code class="cmd">. discard  </code>                      (I've now returned from my editor)
+
+<code class="cmd">. mytt mpg, by(foreign)</code>
+t(72) = -3.6308484
+</pre>
+
+</td>
+</tr>
+
+</table>
+
+<p>
+I invite you to try <code>mytt.ado</code>.  Here is the ado-file as
+it now stands:
+</p>
+
+<table class="standard">
+
+<tr>
+<th class="standard">ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec2/mytt2.ado">mytt.ado (completed version)</a></th> 
+</tr>
+
+<tr>
+<td class="standard"><pre class="cutout">
+<code class="cmd">program mytt</code>
+        <code class="cmd">syntax varname [=/exp] [if] [in] [, BY(varname) UNEqual Welch ]</code>
+
+       <code class="cmd"> if `"`exp'"'=="" {</code>
+                <code class="cmd">tt_3 `0'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {</code>
+                <code class="cmd">capture confirm number `exp'</code>
+                <code class="cmd">if _rc==0 {</code>
+                        <code class="cmd">tt_1 `0'</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                        <code class="cmd">tt_2 `0'</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_1</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+        <code class="cmd">quietly {</code>
+                <code class="cmd">summarize `varlist' `if' `in'</code>
+                <code class="cmd">local n = r(N)</code>
+                <code class="cmd">local xbar = r(mean)</code>
+                <code class="cmd">local s = r(sd)</code>
+                <code class="cmd">local t = (`xbar'-`exp')*sqrt(`n')/`s'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">di "t(" `n'-1 ") = " `t'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_2</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+
+        <code class="cmd">tempvar diff</code>
+        <code class="cmd">quietly gen double `diff' = `varlist' - (`exp') `if' `in'</code>
+        <code class="cmd">tt_1 `diff' = 0 `if' `in'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_3</code>
+        <code class="cmd">syntax varname [if] [in], BY(varname) [UNEqual Welch]</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Mark the             */
+                                        /* to-use subsample     */
+      <code class="cmd">  marksample touse</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Verify <code class="cmd">`by'</code> divides  */
+                                        /* data into 2 groups   */
+  <code class="cmd">      quietly tabulate `by' if `touse'</code>
+        <code class="cmd">if r(r)!=2 {</code>
+                <code class="cmd">di as error "`by' must take on two values"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Verify <code class="cmd">welch</code> and  */
+                                        /* set <code class="cmd">unequal</code>       */
+        <code class="cmd"> 
+	if "`welch'"!=""  {
+        	local unequal "unequal"
+	}
+        </code>
+        /* ---------------------------------------------------- */
+                                        /* create calculation   */
+                                        /* ingredients          */
+       <code class="cmd"> quietly summarize `by' if `touse'</code>
+       <code class="cmd"> local min = r(min)</code>
+       <code class="cmd"> local max = r(max)</code>
+
+       <code class="cmd"> quietly summarize `varlist' if `by'==`min' &amp; `touse'</code>
+       <code class="cmd"> local n1 = r(N)</code>
+       <code class="cmd"> local x1 = r(mean)</code>
+       <code class="cmd"> local s1 = r(sd)</code>
+       <code class="cmd"> local v1 = r(Var)</code>
+       <code class="cmd"> local V1 = r(Var)/`n1'</code>
+
+       <code class="cmd"> quietly summarize `varlist' if `by'==`max' &amp; `touse'</code>
+       <code class="cmd"> local n2 = r(N)</code>
+       <code class="cmd"> local x2 = r(mean)</code>
+       <code class="cmd"> local s2 = r(sd)</code>
+       <code class="cmd"> local v2 = r(Var)</code>
+       <code class="cmd"> local V2 = r(Var)/`n2'</code>
+
+
+        /* ---------------------------------------------------- */
+                                        /* Perform calculation  */
+
+       <code class="cmd"> if "`unequal'"=="" { </code>           /* ... equal Var case   */
+      <code class="cmd">          local d = `n1'+`n2'-2</code>
+                <code class="cmd">local t = (`x1'-`x2') / (              ///</code>
+                        <code class="cmd">sqrt(((`n1'-1)*`v1' +          ///</code>
+                              <code class="cmd">(`n2'-1)*`v2')/`d') *    ///</code>
+                          <code class="cmd">sqrt(1/`n1'+1/`n2')          ///</code>
+                        <code class="cmd">)</code>
+        <code class="cmd">}</code>
+   <code class="cmd">     else { </code>                         /* ... unequal Var case */
+             <code class="cmd">   local t = (`x1'-`x2')/sqrt(`V1' + `V2')</code>
+             <code class="cmd">   if "`welch'"=="" {</code>
+               <code class="cmd">         local d = (`V1'+`V2')^2 / (       ///</code>
+                 <code class="cmd">         `V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///</code>
+                   <code class="cmd">       )</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                  <code class="cmd">      local d = -2 + (`V1'+`V2')^2 / ///</code>
+                    <code class="cmd">        ( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+        /* ---------------------------------------------------- */
+                                        /* display result       */
+     <code class="cmd">   di "t(" `d' ") = " `t'</code>
+<code class="cmd">end</code>
+      
+
+</pre></td> 
+</tr> 
+</table>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="exercises"></a>8. Exercises</h3>
+
+<ol>
+<li>
+<p>
+In developing <code class="cmd">tt_3</code>, we suggested the block of code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if `"`by'"' == "" {</code>
+     /* issue an error message, such as: */
+     <code class="cmd">display as error "by() required"</code>
+     <code class="cmd">exit 198</code>
+<code class="cmd">}</code>
+</pre>
+
+<p>
+to verify that <code class="cmd">by()</code> was specified.  Explain the
+significance of the double quotes around <code class="cmd">`by'</code>.  (Hint:
+Consider what would have happened if we had omitted the double quotes and if
+(1) the user did not specify <code class="cmd">by()</code> and (2) the user did
+specify <code class="cmd">by()</code>.)
+</p>
+</li>
+
+<li>
+<p>
+Write the command
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mygg <span class="repl">yvar</span> <span class="repl">xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>]
+</code></pre>
+
+<p>
+which graphs the points <span class="repl">yvar</span> versus <span
+class="repl">xvar</span> along with the least-squares regression line.  Ensure
+that your program presents a reasonable error message if the user incorrectly
+(1) specifies only one variable or (2) specifies more than two variables.
+Also, ensure that your program properly respects any 
+<code class="cmd">if <span class="repl">exp</span></code> or 
+<code class="cmd">in <span class="repl">range</span></code> restrictions the 
+user specifies.
+</p>
+
+<p>
+Hint:  I know this is going to sound obvious, but you cannot program something
+until you know exactly what the program is supposed to do.  When I showed this
+lecture to a smart person, she got here and said, "I understood everything you
+said, but I do not know how to start&#8212;how to put it together."
+</p>
+
+<p>
+In the <code class="cmd">mytt</code> example, we had a formula to serve as a
+recipe.  In this case, we must create our own recipe.  Here's how:
+</p>
+
+<p>
+Do the problem interactively.  Use the automobile data.  Graph, say, mpg against
+weight, including the regression line.  Write down the commands you just typed.
+Now, graph price against displacement (with regression line) and write down the
+commands again.  Compare them.  There's your recipe; you now know what must be
+substituted, and you have the guts of your program.
+</p>
+
+<p>
+You cannot write a program to do something until you can do it interactively.
+When I write complicated programs, I perform lots of experiments interactively
+to fix problems.
+</p>
+</li>
+
+<li>
+<p>
+Modify <code class="cmd">mygg</code> to allow
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mygg <span class="repl">yvar xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>] 
+[, saving(<span class="repl">filename</span>[,replace]) ]
+</code></pre>
+
+<p>
+The <code class="cmd">saving()</code> option is 
+<code class="cmd">graph</code>'s saving option.
+</p>
+</li>
+
+<li>
+<p>
+Modify <code class="cmd">mygg</code> to have the syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mygg <span class="repl">yvar xvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>] [, quad saving(<span class="repl">filename</span>[,replace]) ]
+</code></pre>
+
+<p>
+If <code class="cmd">quad</code> (abbreviation <code class="cmd">q</code>) is
+specified, a quadratic rather than a straight line is to be drawn through the
+points.
+</p>
+
+<p>
+By quadratic, we mean to fit the regression y = c + b*x + d*x^2.
+</p>
+</li>
+
+<li>
+<p>
+Assume that you often estimate regressions that include quadratic terms.
+For instance, one day you might be analyzing wages and estimate
+</p>
+
+<pre class="codeblock">
+<code class="cmd">ln(wage) = c + b*age + a*age^2 + d*educ + u </code>
+</pre>
+
+<p>
+and another day be looking at the automobile data and estimate 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">mpg = c + b*weight + a*weight^2 + d*foreign + u </code>
+</pre>
+
+<p>
+Anyway, you often have terms like X and X^2.  Suppose that you wish to
+write a program to help you interpret such regressions.  You would like the
+program to report
+</p>
+
+<ul>
+<li>The minimum value of X and the corresponding c + b*X + a*X^2.</li>
+<li>The maximum value of X and the corresponding c + b*X + a*X^2.</li>
+<li>The turning point X=(&minus;b/2a) and the corresponding c + b*X + a*X^2.</li>
+</ul>
+
+<p>
+Write program <code class="cmd">equad</code> to do this.  
+<code class="cmd">equad</code> is to have syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+equad varname1 varname2 [if <span class="repl">exp</span>] [in <span class="repl">range</span>]</code>
+</pre>
+
+<p>
+where varname1 is the name of the X variable and varname2 the name of the X^2
+variable.  <code class="cmd">equad</code> is for use after 
+<code class="cmd">regress</code> or any other estimation command.  
+</p>
+
+<p>
+Hint:  As a reminder, if X is the name of a variable in an estimated model, the
+coefficient can be obtained as <code class="cmd">_b[X]</code>.  For instance,
+if I
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. gen weight2 = weight^2</code>
+
+<code class="cmd">. regress mpg weight weight2 foreign</code>
+</pre>
+
+<p>
+the coefficient on weight is <code class="cmd">_b[weight]</code>.  The
+intercept (coefficient on the constant) is <code class="cmd">_b[_cons]</code>.
+</p>
+
+<p>
+In my version of <code class="cmd">equad</code>, I obtained the following
+output after running the indicated regression on the automobile data:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. equad weight weight2</code>
+
+1.591e-06*weight2 + -.01657294*weight + 56.538839
+
+          min:  weight=     1760  effect= 32.29922
+          max:  weight=     4840  effect= 13.59953
+turning point:  weight= 5207.837  effect= 13.38425
+</pre>
+
+<p>
+By the way, the formula for the "turning point", the point at which a*X^2 + b*X
++ c achieves a minimum or maximum, is X = &minus;b/2a.
+</p>
+
+</li>
+
+<li>
+<p>
+Pretend that you have not yet estimated a regression but mistakenly think that
+you have.  Does your <code class="cmd">equad</code> program produce a
+reasonable error message?  Why or why not?  (Hint:  You can type 
+<code class="cmd">discard</code> to make Stata forget previous estimation 
+results, so you could experiment by typing <code class="cmd">discard</code> 
+followed by <code class="cmd">equad weight weight2</code>.)
+</p>
+</li>
+
+<li>
+<p>
+Modify <code class="cmd">equad</code> to display the turning point on the
+correct line relative to the min and max lines.  For instance, using the
+automobile data, if I
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. gen weight2 = weight^2</code>
+
+<code class="cmd">. regress mpg weight weight2 foreign</code>
+
+<code class="cmd">. equad weight weight2</code>
+
+1.591e-06*weight2 + -.01657294*weight + 56.538839
+
+          min:  weight=     1760  effect= 32.29922
+          max:  weight=     4840  effect= 13.59953
+turning point:  weight= 5207.837  effect= 13.38425
+</pre>
+
+<p>
+it just so happens that the turning point appears on the third line, which
+I like.  On the other hand, if I run the same regression on price,
+</p>
+
+<p>
+
+<pre class="codeblock">
+<code class="cmd">. regress price weight weight2 foreign</code>
+
+<code class="cmd">. equad weight weight2</code>
+
+.0011211*weight2 + -3.7145739*weight + 5526.6637
+
+          min:  weight=     1760  effect= 2461.738
+          max:  weight=     4840  effect= 13810.61
+turning point:  weight= 1656.662  effect= 2449.766
+</pre>
+
+<p>
+I would prefer that the turning point line appear before the min and max lines
+because weight=1656.662 &lt; 1760=minimum value of weight.  In some other
+example, if the turning point weight were between 1760 and 4840, I would like
+the turning point line to appear between the min and max lines.
+</p>
+</li>
+
+<li>
+<p>
+Sometimes I want <code class="cmd">equad</code> to report effects, including
+the constant, and other times I do not.  That is, sometimes I want predicted
+effects calculated as a*X^2 + b*X + c, and other times I merely want the
+calculation made a*X^2 + b*X.  Modify <code class="cmd">equad</code> to have a
+<code class="cmd">nocons</code> option:
+</p>
+
+</li>
+</ol>
+
+<pre class="codeblock">
+<code class="cmd">equad varname1 varname2 [if <span class="repl">exp</span>] [in <span class="repl">range</span>] [, nocons]</code>
+</pre>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+
+<!-- exercise NetCourseNow -->
+
+<div class="section_div"></div>
+
+
+<div class="center"><h2>End of Lecture 2</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td class="nc4lec" colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>
+

@@ -1,0 +1,2095 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/07/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152&#8212;Lecture 1</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+<div class="center">
+<table class="ncbanner">
+<tr>
+<td><img src="../images/lecture1v.gif" alt="Lecture 1"></td>
+<td><img src="../images/nc152banner.gif" alt="Banner"></td>
+</tr>
+</table>
+</div>
+<div class="section_div"></div>
+
+<p>
+<!-- add1 NetCourseNow -->First, have you read the NetCourse Basics?  You
+should have.  If not, click <a href="../basics.html">here to read</a> them now.
+</p>
+
+<p>
+<!-- change NetCourseNow -->Second, we wish to emphasize that all will go
+better if you participate, which you do by posting messages to the
+<!-- change NetCourseNow --><a href="../messages/">NetCourse 152 message board</a>.  When you post messages, all participants can see your message.
+</p>
+
+<p>
+When asking questions about the lectures, please refer to the section heading
+of that portion of the lecture.  Section headings look like this:
+</p>
+
+<h3>This is a section heading</h3>
+
+<p>
+All right, with that out of the way, we begin ...
+</p>
+
+<h2><a name="toc"></a>Lecture 1 - Table of Contents</h2>
+
+<div class="main_section"><a href="#review">1. Review of Stata's programming features</a></div>
+<div class="main_section"><a href="#parsing">2. Parsing</a></div>
+<div class="main_section"><a href="#options">3. Parsing options</a></div>
+<div class="main_section"><a href="#advanced">4. Parsing complicated syntax</a></div>
+<div class="main_section"><a href="#aside">5. Aside on subprograms</a></div>
+<div class="main_section"><a href="#exer">6. Exercises</a></div>
+
+<div class = "section_div"></div>
+
+<h3><a name="review"></a>1. Review of Stata's programming features</h3>
+
+<p>
+This is not so much Lecture 1 of NC-152 as it is Lecture 5 of NC-151, so as a
+way of getting back into it, let's review where we are:
+
+<ol>
+<li>Stata has do-files, which are recorded commands to be executed
+sequentially.</li>
+
+<li>Stata has a <span class="cmd">program</span> command that allows you to
+create new Stata commands in terms of existing Stata commands.</li>
+
+<li><code class="cmd">program</code> can be used interactively but seldom is,
+except for pedagogic purposes.</li>  
+
+<li><code class="cmd">program</code> can be used within a do-file and often is.
+Such do-file programs are typically intended for a special purpose, and the
+do-file contains not only the program or programs but also the (sequential)
+code that uses these temporarily created commands.</li>
+
+<li><code class="cmd">program</code> can be used within an ado-file, which is
+nothing more than a do-file that Stata automatically loads when necessary.
+Such automatic do-files contain only the program definition.  In this way, you
+can add new commands to Stata for use in any context.</li>  
+
+<li>Stata has macros&#8212;both local and global&#8212;which for the most part
+serve the purpose of "variables" in conventional programming languages.  Macros
+are used internally to hold results, receive results, and pass results along to
+other programs.</li>
+
+<li>Programs receive arguments in local macros named 
+<code class="cmd">`1',`2', ...; `1'</code> contains the first thing 
+typed after the command name,
+<code class="cmd">`2'</code> the second, and so on.</li>
+
+<li>In addition to macros, Stata has scalars and matrices.  (We only touched on
+this in NC-151.)</li>
+
+<li>An important difference between Stata and conventional programming
+languages is the presence and accessibility of a current dataset containing
+observations and variables.  In Stata, we reserve the word "variable" to refer
+to variables stored in the dataset, such as mpg in auto.dta.  If our program
+has a macro or scalar named <code>i</code> used as a loop counter, we call it what it
+is&#8212;a macro or scalar. We do not call it a variable.</li>
+
+<li> Stata provides temporary variables (in the dataset), temporary files,
+temporary scalars, and temporary matrices.  By temporary, it is meant that you
+can ask for one of these things, use it, and never worry about deleting it
+because, when your program concludes, it will disappear by itself.  Moreover,
+while you have it, it is private&#8212;no other program can access it or modify
+it unless you explicitly pass it to that other program.</li>
+
+<li> The logic of temporary things is the same for variables  in the dataset,
+files, scalars, or matrices.  Stata gives you a name that you store in a macro,
+and then you use that macro to refer to it.  Because Stata knows the names it
+gave you, when your program completes, Stata can look for and delete any
+temporary thing you happen to leave lying around.  The commands to obtain these
+temporary names are <code class="cmd">tempvar</code> (for variables), 
+<code class="cmd">tempname</code> (for scalars and matrices), and 
+<code class="cmd">tempfile</code> (for files); this was only touched on in
+NC-151.</li>
+
+<li> A similar feature, <code class="cmd">preserve</code>, lets you temporarily
+destroy the data in memory if necessary.  When the program completes, the data
+are automatically restored.  The data can also be restored manually using the
+<code class="cmd">restore</code> command.</li>
+
+<li> Stata has an <code class="cmd">if</code> and <code class="cmd">else</code>
+command for branching.</li>
+
+<li> Stata has three commands for looping or processing lists:
+
+<ul>
+<li> <code class="cmd">foreach</code> is useful for looping across a list of variables or file names.</li>
+
+<li> <code class="cmd">forvalues</code> can be used to cycle through a list of numbers.</li>
+
+<li> <code class="cmd">while</code> can be used to execute commands until a
+certain condition is met.</li> </ul>
+
+<p>
+You can use <code class="cmd">forvalues</code> and <code class="cmd">while</code> to loop across observations, but
+they are slow; in most situations, you should use explicit indexing along with
+the <code class="cmd">by varlist:</code> prefix
+</p>
+</li>
+
+<li> Stata's language is constantly changing (improving).  Stata provides a
+<code class="cmd">version</code> command that you can use to declare which
+version you used to write the program so that it will continue to work in later
+releases of Stata.
+</li>
+
+<li> The trick to programming is assembling elements in clever sequences.</li>
+</ol>
+
+<p>
+This course is really about item number 16, although along the way we will pick
+up more pieces of Stata syntax.  For instance, we did not cover all the
+capabilities of <code class="cmd">syntax</code>.  We will.
+</p>
+
+<p>
+Here's a simple program that we left off with in NC-151:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec1/iqr.ado">iqr.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program iqr
+     syntax [varlist] [if]
+     display
+     foreach i of local varlist {
+          quietly summarize `i' `if', detail
+          display ///
+          "`i'"                                 ///
+          _col(20) "obs = " r(N)                ///
+          _col(30) "median = " r(p50)           ///
+          _col(51) "iqr = " r(p75)-r(p25)
+     }
+end
+</code></pre></td> 
+</tr> 
+
+</table>
+
+<p>
+Do you remember what <code class="cmd">iqr</code> does?
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. iqr mpg</code>
+
+mpg      obs = 74       median = 20           iqr = 7
+
+
+<code class="cmd">. iqr mpg weight</code>
+
+mpg      obs = 74       median = 20           iqr = 7
+weight   obs = 74       median = 3190         iqr = 1360
+
+
+<code class="cmd">. iqr mpg weight if foreign</code>
+
+mpg      obs = 22       median = 24.5         iqr = 7
+weight   obs = 22       median = 2180         iqr = 630
+</pre>
+
+<p>
+<code class="cmd">iqr</code> reports the median and interquartile range.  It
+allows a varlist but does not require it (in which case it reports results for
+all the variables in the data), and <code class="cmd">iqr</code> optionally
+allows an <code class="cmd">if <span class="repl">exp</span></code>.
+</p>
+
+<p>
+Inside <code class="cmd">iqr</code>, the first line is concerned only with
+parsing the user's request:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if]</code>
+</pre>
+
+<p>
+The rest of the code loops across the variables, invokes 
+<code class="cmd">summarize</code> repeatedly, and reports the results:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+foreach i of local varlist {
+     quietly summarize `i' `if', detail
+     display ///
+     "`i'"                                 ///
+     _col(20) "obs = " r(N)                ///
+     _col(30) "median = " r(p50)           ///
+     _col(51) "iqr = " r(p75)-r(p25)
+}
+</code></pre>
+
+<p>
+As a reminder, let's run back over the parsing step, but this time, let me show
+you exactly what is happening.
+</p>
+
+<p>
+Pretend that the user types 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. iqr mpg wei if foreign</code>
+</pre>
+
+
+<p>
+When the program begins to execute, before the first line of 
+<code class="cmd">iqr</code> code has been executed, the macros and their
+values are
+</p>
+
+<table class="standard">
+
+<tr>
+	<th>`0'</th>
+	<th>`1'</th>
+	<th>`2'</th>
+	<th>`3'</th>
+	<th>`4'</th>
+	<th>`varlist'</th>
+	<th>`if'</th>
+</tr>
+
+<tr>
+	<td>mpg wei if foreign</td>
+	<td>mpg</td>
+	<td>wei</td>
+	<td>if</td>
+	<td>foreign</td>
+	<td>&nbsp;</td>
+	<td>&nbsp;</td>
+   </tr> 
+
+</table>
+
+
+<p>
+Note that the macros <code class="cmd">`varlist'</code> and 
+<code class="cmd">`if'</code> have not been defined yet, so they are blank.
+</p>
+
+<p>
+Stata passes what the user types to the program in two ways:
+</p>
+
+<ol>
+<li>In the macro <code class="cmd">`0'</code>, Stata puts exactly what the user typed as the user typed it.</li>
+
+<li>In the macros <code class="cmd">`1', `2'</code>, ..., Stata puts what the
+user typed, broken into "words", where words are defined as "separated by
+blanks or spaces".</li>
+</ol>
+
+<p>
+Pretend that the user typed
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. iqr mpg wei  if foreign</code><br>             
+(note the two blanks between wei and <code class="cmd">if</code>) 
+</pre>
+
+<p>
+The <code class="cmd">`0', `1',</code> ... macros would contain 
+</p>
+
+<table class="standard">
+<tr>
+<th>`0'</th>
+<th>`1'</th>
+<th>`2'</th>
+<th>`3'</th>
+<th>`4'</th>
+</tr>
+
+<tr>
+<td>mpg wei&nbsp;  if foreign</td>
+<td>mpg</td>
+<td>wei</td>
+<td>if</td>
+<td>foreign</td>
+</tr> 
+
+</table>
+
+
+<p>
+That is, <code class="cmd">`0'</code> would change because it is a perfect copy
+of what the user typed.  Macros <code class="cmd">`1'</code>, 
+<code class="cmd">`2'</code>, <code class="cmd">`3'</code>, and 
+<code class="cmd">`4'</code> would not change because the words still break 
+the same way.
+</p>
+
+<p>
+Now, our <code class="cmd">iqr</code> program comes to executing the first
+line:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if]</code>
+</pre>
+
+<p>
+<code class="cmd">syntax</code> does not care what is in 
+<code class="cmd">`1',`2',</code> .... 
+<code class="cmd">syntax</code> cares only about what is in
+<code class="cmd">`0'</code>.  
+<code class="cmd">syntax</code> parses what the
+user typed only because <code class="cmd">`0'</code> automatically contains
+what the user typed.  In other words, if we changed the contents of 
+<code class="cmd">`0'</code> before issuing <code class="cmd">syntax</code>, 
+<code class="cmd">syntax</code> would look at the changed contents of 
+<code class="cmd">`0'</code>.  
+</p>
+
+<p>
+Here is the result of <code class="cmd">syntax [varlist] [if]</code>:
+</p>
+<table>
+
+<tr>
+<td>
+
+<table style="text-align: center; border-collapse: collapse;">
+<tr>
+<th style="background-color: #CEFFFF;border: solid 1px #AFAFAF;">`0'</th>
+<th style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">`1'</th>
+<th style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">`2'</th>
+<th style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">`3'</th>
+<th style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">`4'</th>
+</tr>
+<tr>
+<td style="background-color: #CEFFFF; border: solid 1px #AFAFAF;">mpg wei if foreign</td>
+<td style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">mpg</td>
+<td style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">wei</td>
+<td style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">if</td>
+<td style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">foreign</td>
+</tr>
+</table>
+
+</td>
+</tr>
+
+<tr>
+	<td>
+	<div class="center">
+	<img src="../images/d-arrow.gif" alt="d-arrow" class="noborder">
+	</div>
+	</td>
+	<td>(macros <code class="cmd">`0', `1',</code> ... remain unchanged)
+	</td>
+</tr>	
+
+
+<tr>
+	<td style="background-color: #CCCCCC;">
+		<code class="cmd">syntax [varlist] [if]</code>
+		reads <br><code class="cmd">`0'</code> and fills
+		in <code class="cmd">`varlist'</code> and 
+		   <code class="cmd">`if'</code>
+	</td>
+	<td>&nbsp;&nbsp;&nbsp;&nbsp;&lt;--- <code class="cmd">syntax</code> 
+	just knows to read <code class="cmd">`0'</code>
+	</td>
+</tr>
+
+<tr>
+	<td>
+	<div class="center">
+	<img src="../images/d-arrow.gif" alt="d-arrow" class="noborder">
+	</div>
+	</td>
+</tr>
+
+<tr>
+	<td>
+	<div class="center">
+	<table style="text-align: center; border-collapse: collapse;">
+	<tr>
+<th style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">`varlist'</th>
+<th style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">`if'</th>
+	</tr>
+
+	<tr>
+<td style="background-color: #FFFFCE; border: solid 1px #AFAFAF;">mpg weight</td>
+<td style="background-color: #CEFFCE; border: solid 1px #AFAFAF;">if foreign</td>
+	</tr>
+	</table>
+	</div>
+</td>
+</tr>
+</table>
+
+
+
+<p>
+The parsing is now complete:  we have the unabbreviated variable names in 
+<code class="cmd">`varlist'</code> and the if condition in 
+<code class="cmd">`if'</code>.  
+
+<p>
+Next comes the <code class="cmd">foreach</code> list processor, the important
+part of which reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+foreach i of local varlist {
+     ...
+}
+</code></pre>
+
+<p>
+So much for review.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="parsing"></a>2. Parsing</h3>
+
+<p>
+We were discussing the <code class="cmd">syntax</code> command when we left off
+on NC-151, so let's complete that discussion.  Here is what happens when a user
+types a command:
+</p>
+
+<table class="color">
+<tr>
+	<th>&nbsp;</th>
+	<th class="gray" colspan="6">
+<code class="cmd">`0'</code> and <code class="cmd">`*'</code> are set to 
+contain the command arguments exactly as typed</th>
+</tr>
+
+<tr>
+	<td class="pink">. <span class="repl">command</span></td>
+	<td class="yellow"><span class="repl">thing1</span></td>
+	<td class="blue"><span class="repl">thing2</span></td>
+	<td class="green"><span class="repl">thingk</span></td>
+	<td class="purple" colspan="2" rowspan="2">
+	<code class="cmd">`<span class="repl">k+1</span>'</code> 
+	set to contain (nothing)
+	</td>
+</tr>
+<tr>
+        <td class="pink">&nbsp;</td>
+        <td class="yellow">&nbsp;</td>
+        <td class="blue">&nbsp;</td>
+        <td class="green">&nbsp;</td>
+</tr>
+<tr>
+        <td class="pink">&nbsp;</td>
+        <td class="yellow">&nbsp;</td>
+        <td class="blue">&nbsp;</td>
+        <td class="green" colspan="3">
+	<code class="cmd">`<span class="repl">k</span>'</code> 
+	set to contain <span class="repl">thingk</span></td>
+</tr>
+<tr>
+        <td class="pink">&nbsp;</td>
+        <td class="yellow">&nbsp;</td>
+        <td class="blue"colspan="4">
+	<code class="cmd">`2'</code> set to contain 
+	<span class="repl">thing2</span></td>
+</tr>
+<tr>
+        <td class="pink">&nbsp;</td>
+        <td class="yellow" colspan="5">
+	<code class="cmd">`1'</code> set to contain 
+	<span class="repl">thing1</span></td>
+</tr>
+<tr>
+        <td class="pink" colspan="6">Stata executes command.ado</td>
+</tr>
+</table>
+
+
+
+<p>
+Stata passes <span class="repl">thing1</span> <span class="repl">thing2</span>
+... <span class="repl">thingk</span> to you in the following ways:
+</p>
+
+<ol>
+<li>The whole line, exactly as typed, is passed in 
+<code class="cmd">`0'</code>.</li>
+
+<li>The first word is also passed as <code class="cmd">`1'</code>, the second
+word as <code class="cmd">`2'</code>, and so on.</li>
+
+<li>All the words, with one blank between each word, are passed to you as
+<code class="cmd">`*'</code>.
+</li>
+
+</ol>
+
+<p>
+You may choose to parse the line based on any one or all three of these
+conventions, although usually, you use just 1 or 2.
+</p>
+
+<p>
+Method 2, the <code class="cmd">`1', `2', `3'</code> ... convention, also known
+as the argument convention, is sometimes adequate.  I find that it is adequate
+when I am writing subroutines, which are "commands" that are not intended to be
+used directly by the user but that help my main program along.
+</p>
+
+<p>
+For the main program, however, I typically want Stata syntax, and that is easy
+to arrange using <code class="cmd">syntax</code> because 
+<code class="cmd">syntax</code> uses <code class="cmd">`0'</code>.
+</p>
+
+<p>
+The generic Stata syntax is
+</p>
+
+<pre class="codeblock"><code class="cmd">.<span class="repl"> command varlist weight =exp if exp in range</span> using <span class="repl">filename, options</span>
+</code></pre>
+
+
+<p>
+<code class="cmd">syntax</code> provides specifiers that you can place on the
+<code class="cmd">syntax</code> line to indicate which pieces of Standard Stata
+Syntax you intend to allow:
+</p>
+
+<table class="standard">
+<tr>
+	<th>Syntax piece</th>
+	<th><code class="cmd">syntax</code> specifier</th>
+	<th>Result returned in</th>
+</tr>
+
+<tr>
+	<td><span class="repl">varlist</span></td>
+	<td><code class="cmd">varlist</code>
+	<code class="cmd">varname</code>
+	<code class="cmd">newvarlist</code>
+	<code class="cmd">newvarname</code>
+	</td>
+	<td>
+	<code class="cmd">`varlist'</code>
+        <code class="cmd">`varlist'</code>
+       <code class="cmd">`varlist'</code> and <code class="cmd">`typlist'</code>
+       <code class="cmd">`varlist'</code> and <code class="cmd">`typlist'</code>
+	</td>
+</tr>
+<tr>
+	<td><span class="repl">weight</span></td>
+	<td><code class="cmd">fw</code>, <code class="cmd">pw</code>, <code class="cmd">aw</code>, <code class="cmd">iw</code></td>
+	<td><code class="cmd">`weight'</code> and <code class="cmd">`exp'</code></td>
+</tr>
+<tr>
+	<td>=<span class="repl">exp</span></td>
+	<td><code class="cmd">=exp</code></td>
+	<td><code class="cmd">`exp'</code></td>
+</tr>
+<tr>
+	<td>if <span class="repl">exp</span></td>
+	<td><code class="cmd">if</code></td>
+	<td><code class="cmd">`if'</code></td>
+</tr>
+<tr>
+	<td>in <span class="repl">range</span></td>
+	<td><code class="cmd">in</code></td>
+	<td><code class="cmd">`in'</code></td>
+</tr>
+<tr>
+	<td>using <span class="repl">filename</span></td>
+	<td><code class="cmd">using</code></td>
+	<td><code class="cmd">`using'</code></td>
+</tr>
+<tr>
+	<td><span class="repl">options</span></td>
+	<td>(we will come to that)</td>
+	<td>(macro of same name as opt)</td>
+</tr>
+
+<tr>
+<th colspan="3">Examples:</th>
+</tr>
+
+<tr>
+<td colspan="3">
+<pre class="cutout"><code class="cmd">
+	syntax varlist                                         
+	syntax [varlist]                                       
+	syntax [varlist] if in                                 
+	syntax [varlist] [pw fw] [if in]                       
+</code></pre>
+
+
+</td>
+</tr>
+</table>
+
+
+
+<p>
+Note:   
+</p>
+
+<ul>
+<li>By not specifying a syntactic element on the 
+<code class="cmd">syntax</code> line, you are stating that the element is not
+allowed.</li>
+
+<li>By specifying a syntactic element in [square brackets], you are stating
+that the element is optional.</li>
+
+<li>By specifying a syntactic element outside brackets, you are stating that
+the element is <span class="red">required</span>.</li>
+
+</ul>
+
+<p>
+In our little <code class="cmd">iqr</code> command, we started things off with
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if]
+</code></pre>
+
+<p>
+So, a varlist was optional and, if the user specified it, was stored in the
+macro <code class="cmd">`varlist'</code>.  The definition of varlist says that,
+if the user does not specify a varlist, <code class="cmd">`varlist'</code> is
+filled in with every variable in the dataset.  If we wanted the default
+behavior to be that <code class="cmd">`varlist'</code> is filled in with
+nothing, we would specify 
+<code class="cmd">syntax [varlist(default=none)] [if]</code>.  
+See <code class="cmd">help syntax</code> for the details.
+</p>
+
+<p>
+According to our <code class="cmd">syntax</code> statement, 
+<code class="cmd">if <span class="repl">exp</span></code> is also optional.  If the user 
+specifies an <code class="cmd">if <span class="repl">exp</span></code>, 
+it is stored in 
+<code class="cmd">`if'</code>; if the user does not, 
+<code class="cmd">`if'</code> is filled in with nothing.  
+<code class="cmd">if</code>, unlike 
+<code class="cmd">varlist</code>, defaults to nothing; see 
+<code class="cmd">help syntax</code>.
+</p>
+
+<p>
+According to our <code class="cmd">syntax</code> statement, no other elements
+of Stata syntax are allowed.
+</p>
+
+<p>
+So, 
+</p>
+
+<ul>
+
+<li>
+<p>
+if the user typed <code class="cmd">iqr weight mpg if foreign</code> after the
+<code class="cmd">syntax</code>,
+</p>
+
+<p>
+`varlist' contains <code>weight mpg</code>
+</p>
+
+<p> 
+<code class="cmd">`if'</code> contains <code>if foreign</code>
+</p>
+</li>
+
+<li>
+<p>
+if the user typed <code class="cmd">iqr weight mpg</code> after the 
+<code class="cmd">syntax</code>,
+</p>
+
+<p>
+<code class="cmd">`varlist'</code> contains <code>weight mpg</code>
+</p>
+
+<p>
+<code class="cmd">`if'</code> contains <code>""</code>
+</p>
+</li>
+
+<li>
+<p>
+if the user typed <code class="cmd">iqr wei mpg</code> after the 
+<code class="cmd">syntax</code>,
+</p>
+
+<p>
+<code class="cmd">`varlist'</code> contains <code>weight mpg</code>
+</p>
+
+<p>
+<code class="cmd">`if'</code> contains <code>""</code>
+</p>
+</li>
+
+<li>
+<p>
+if the user typed <code class="cmd">iqr</code> after the 
+<code class="cmd">syntax</code>,
+</p>
+
+<p>
+<code class="cmd">`varlist'</code> contains every variable in the dataset
+</p>
+
+<p>
+<code class="cmd">`if'</code> contains <code>""</code>
+</p>
+</li>
+
+<li>
+<p>
+if the user typed 
+<code class="cmd">iqr weight mpg if foreign in 1/10</code>,
+</p>
+
+<p>
+<code class="cmd">syntax</code> would issue the error 
+<code>in not allowed</code> and stop the program
+</li>
+
+</ul>
+
+<p>
+So, <code class="cmd">syntax</code> really is easy:  you define what you are
+willing to tolerate and find the pieces in the macros of the same name.
+</p>
+
+<p>
+There are lots of little details that will help you obtain exactly what you
+want, and the best way to learn about them is to type 
+<code class="cmd">help syntax</code>.  Here, for instance, is a little bit of 
+what <code class="cmd">help syntax</code> has to say about the 
+<span class="repl">varlist</span> specifier:
+
+<p>
+
+<table class="standard">
+
+<tr>
+<td>
+<pre class="cutout">
+description_of_varlist
+         Type                <span class="repl">nothing</span>
+      or
+         optionally type     <code class="cmd">[</code>
+         then type one of    <code class="cmd">varlist</code> | <code class="cmd">varname</code> | <code class="cmd">newvarlist</code> | <code class="cmd">newvarname</code>
+         optionally type     <code class="cmd">(</code><span class="repl">varlist_specifiers</span><code class="cmd">)</code>
+         type                <code class="cmd">]</code>                       (if you typed <code class="cmd">[</code> at the start)
+ 
+                             <span class="repl">varlist_specifiers</span> are <code class="cmd">default=none</code> <code class="cmd">min=</code><span class="repl">#</span> <code class="cmd">max=</code><span class="repl">#</span> <code class="cmd"><u>num</u>eric</code> <code class="cmd"><u>str</u>ing</code> <code class="cmd">ts</code>
+                                                    <code class="cmd"><u>gen</u>erate</code>   (<code class="cmd">newvarlist</code> and <code class="cmd">newvarname</code> only)
+
+                             Examples:
+                                                    <code class="cmd">syntax varlist ...</code>
+                                                    <code class="cmd">syntax [varlist] ...</code>
+                                                    <code class="cmd">syntax varlist(min=2) ...</code>
+                                                    <code class="cmd">syntax varlist(max=4) ...</code>
+                                                    <code class="cmd">syntax varlist(min=2 max=4 numeric) ...</code>
+                                                    <code class="cmd">syntax [varlist(default=none)] ...</code>
+                                                    <code class="cmd">syntax newvarlist(max=1) ...</code>
+                                                    <code class="cmd">syntax varname ...</code>
+                                                    <code class="cmd">syntax [varname] ...</code>
+
+If you type nothing, the command does not allow a varlist.
+
+Typing <code class="cmd">[</code> and <code class="cmd">]</code> means that the varlist is optional.
+
+<code class="cmd">default=</code> specifies how the varlist is to be filled in when the varlist is optional and the user does not specify it.  
+The default is to fill it in with all the variables.  If <code class="cmd">default=none</code> is specified, it is left empty.
+
+<code class="cmd">min=</code> and <code class="cmd">max=</code> specify the minimum and maximum number of variables that may be specified.  Typing <code class="cmd">varname</code> 
+is equivalent to typing <code class="cmd">varlist(max=1)</code>.
+
+<code class="cmd">numeric</code> and <code class="cmd">string</code> restrict the specified varlist to consist of entirely numeric or entirely string variables.
+
+<code class="cmd">ts</code> allows the varlist to contain time-series operators.
+
+<code class="cmd">generate</code> specifies, in the case of <code class="cmd">newvarlist</code> or <code class="cmd">newvarname</code>, that the new variables be created and filled in with 
+missing values.
+
+After the <code class="cmd">syntax</code> command, the resulting varlist is returned in <code class="cmd">`varlist'</code>.  If there are new variables 
+(you coded <code class="cmd">newvarname</code> or <code class="cmd">newvarlist</code>), the macro <code class="cmd">typlist</code> is also defined containing the storage type 
+of each of the new variables, listed one after the other.
+</pre>
+</td>
+</tr>
+
+</table>
+
+<p>
+<code class="cmd">help syntax</code> really is worth reading.
+</p>
+
+<p>
+Let's think about how we would parse some common Stata commands if we were
+rewriting them:
+</p>
+
+<table class="standard">
+<tr>
+	<th>Command</th>
+	<th>Syntax</th>
+	<th>Parsing code</th>
+</tr>
+<tr>
+	<td><code class="cmd">summarize</code></td>
+	<td>summarize [varlist] [weight] [if exp] [in range]<br>
+	where aweights and fweights are allowed</td>
+	<td><code class="cmd">syntax [varlist] [aw fw] [if] [in]</code></td>
+</tr>
+<tr>
+	<td><code class="cmd">generate</code></td>
+	<td>generate [type] newvar = exp [if exp] [in range]</td>
+	<td><code class="cmd">syntax newvarname =exp [if] [in]</code></td>
+</tr> 
+<tr>
+	<td><code class="cmd">tabulate</code></td>
+	<td>tabulate varname [varname] [weight] [if exp] [in range]<br>
+	where fweights are allowed</td>
+	<td><code class="cmd">syntax varlist(max=2) [fw] [if] [in]</code></td>
+</tr>
+<tr>
+	<td><code class="cmd">regress</code></td>
+	<td>regress depvar [indepvars] [weight] [if exp] [in range]<br>
+	where aweights, fweights, and iweights are allowed</td>
+	<td><code class="cmd">syntax varlist [aw fw iw] [if] [in]</code></td>
+</tr> 
+</table>
+
+
+<p>
+Note:  when you specify newvarname or newvarlist, 
+<code class="cmd">syntax</code> stores the corresponding types of the 
+variables in <code class="cmd">`typlist'</code> and the variable names in 
+<code class="cmd">`varlist'</code>.
+</p>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="options"></a>3. Parsing options</h3>
+
+<p>
+Options work a lot like the other pieces of Stata syntax.  You specify the
+option inside or outside square brackets on the <code class="cmd">syntax</code>
+statement, and you get back the value of the option in a local macro of the
+same name.
+</p>
+
+<p>
+Say that I want to create a command that has the option 
+<code class="cmd">detail</code>.  I might code 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in] [, detail]</code>
+</pre>
+
+<p>
+The result of this will be that <code class="cmd">syntax</code> will fill in a
+macro named <code class="cmd">`detail'</code>,  which will contain nothing if
+the user did not specify the <code class="cmd">detail</code> option.  If the
+user did specify the option, it will contain the word <code>detail</code>.  That is,
+</p>
+
+<pre class="codeblock">
+after parsing, macro  <code class="cmd">`detail'</code>  contains  ""  or  <code>detail</code>.
+</pre>
+
+<p>
+That is a general rule.  Say I wanted also to allow option 
+<code class="cmd">beta</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, detail beta]
+</code></pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in], [ beta detail]
+</code></pre>
+
+<p>
+(the order does not matter).  Then, after parsing,
+</p>
+
+<pre class="codeblock">
+macro  <code class="cmd">`detail'</code>  contains  ""  or  "detail"<br>
+macro  <code class="cmd">`beta'</code>    contains  ""  or  "beta"
+</pre>
+
+<p>
+In general,
+</p>
+
+<pre class="codeblock">
+macro  <code class="cmd">`<span class="repl">whatever</span>'</code>  contains  ""  or  "<span class="repl">whatever</span>"
+</pre>
+
+<p>
+Macro <span class="repl">whatever</span> contains 
+<span class="repl">"whatever"</span> if the user specified the
+<span class="repl">whatever</span> option, and it contains nothing otherwise.
+</p>
+
+<p>
+Putting "<span class="repl">whatever</span>" into 
+<code class="cmd">`<span class="repl">whatever</span>'</code> may seem a 
+repetitive way to specify the option, but it turns out to be useful.  
+Imagine that the reason you are allowing the <code class="cmd">detail</code> 
+option is that you will, later in your program, pass it along to the 
+<code class="cmd">summarize</code> command.  You can later code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize ... , `detail'
+</code></pre>
+
+<p>
+If the user specified the <code class="cmd">detail</code> option, 
+<code class="cmd">`detail'</code> contains <code>detail</code>, 
+so the command reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize ... , detail
+</code></pre>
+
+<p>
+If the user did not specify the option, the command reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize ... ,
+</code></pre>
+
+<p>
+which is okay with Stata (Stata does not mind the hanging comma).  In other
+cases, you may need to take a different path through your code, depending on the
+option, and you will code this as
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`beta'"!="" {</code>
+     /* special code for option beta specified */
+<code class="cmd">}</code>
+</pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`beta'"=="" {</code>
+     /* special code for option beta not specified */
+<code class="cmd">}</code>
+</pre>
+
+<p>
+When you declare option(s),
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, detail beta]
+</code></pre>
+
+<p>
+you can specify the minimum abbreviation by capitalizing it:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, DEtail BETa]
+</code></pre>
+
+<p>
+This allows the user to abbreviate <code class="cmd">detail</code> as 
+<code class="cmd">de</code> and <code class="cmd">beta</code> as 
+<code class="cmd">bet</code>.
+</p>
+
+<p>
+Sometimes, I want options that work backwards. Instead of 
+<code class="cmd">detail</code> being the option and 
+<code class="cmd">nodetail</code> being the default, I want 
+<code class="cmd">nodetail</code> to be the option and 
+<code class="cmd">detail</code> to be the default:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, noDEtail BETa]
+</code></pre>
+
+<p>
+The result of the parsing will still be to record the result of the
+nodetail/detail choice in local macro <code class="cmd">`detail'</code>, but
+now, <code class="cmd">`detail'</code> will contain "" if no option is
+specified and <code>nodetail</code> if <code class="cmd">nodetail</code> 
+is specified. That's consistent if you think about it.
+</p>
+
+<table class="technote">
+
+<tr>
+<td>
+<h4>Aside:</h4>
+<p>
+Think of options as detail/nodetail, and not just detail or nodetail.  In the
+example above, <code class="cmd">detail</code> is still the option, but 
+<code class="cmd">nodetail</code> is the assumed default value.  When you 
+specify <code class="cmd">nodetail</code>, you are declaring an option called 
+<code class="cmd">detail</code> (abbreviation <code class="cmd">de</code>), 
+and if the option is not typed by the user, local macro 
+<code class="cmd">`detail'</code> will be blank.  Stata will interpret that as 
+if option <code class="cmd">nodetail</code> were typed.
+</p>
+
+<p>
+If we declare <code class="cmd">syntax [varlist] [if] [in] [, detail]</code>,
+the user can type
+</p>
+
+<pre class="codeblock">
+<span class="repl">nothing</span>,     and <code class="cmd">`detail'</code> contains ""<br>
+<code class="cmd">nodetail</code>,     and <code class="cmd">`detail'</code> contains ""<br>
+<code class="cmd">detail</code>,       and <code class="cmd">`detail'</code> contains "detail"
+</pre>
+
+<p>
+If we declare <code class="cmd">syntax [varlist] [if] [in] [, noDEtail]</code>,
+the user can type
+</p>
+
+<pre class="codeblock">
+<span class="repl">nothing</span>,     and <code class="cmd">`detail'</code> contains ""<br>
+<code class="cmd">nodetail</code>,     and <code class="cmd">`detail'</code> contains "nodetail"<br>
+<code class="cmd">detail</code>,       and <code class="cmd">`detail'</code> contains ""
+</pre>
+
+</tr>
+
+</table>
+
+<p>
+In addition to switches such as detail/nodetail, options sometimes need
+arguments.  <code class="cmd">syntax</code> allows eight kinds of arguments:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [,                              /// 
+       one(integer 1)  two(real 3.14)  three(string)       ///
+       four(varlist)   five(numlist)    six(passthru)      ///
+       seven(namelist) eight(cilevel)
+</code></pre>
+
+
+<p>
+In this declaration, the new command being created allows eight 
+options&#8212;<code class="cmd">one(), two(), three(), four(), five(), six(), 
+seven(), and eight</code>&#8212;each option having a specific type.
+</p>
+
+<p>
+Option <code class="cmd">one()</code>, specified as 
+<code class="cmd">one(integer 1)</code>, is declared to require an integer 
+argument.  If the user does not specify the option, the value 1 is assumed.  
+Thus <code class="cmd">syntax</code> will create a macro 
+<code class="cmd">`one'</code>, which will contain <code>1</code> if the user 
+does not specify the option, or contain whatever integer the user did specify.  
+<code class="cmd">syntax</code> will ensure that, if the user specified the 
+option, the user specified an integer; if the user types, say, 
+<code class="cmd">one(1.2)</code>, <code class="cmd">syntax</code> produces an 
+error, and everything stops.
+</p>
+
+<p>
+Option <code class="cmd">two()</code>, declared 
+<code class="cmd">two(real 3.14)</code>, is much like option 
+<code class="cmd">one()</code>, except that it allows a floating-point 
+argument and defaults to 3.14 if <code class="cmd">two()</code> is not 
+specified.  Thus, as long as the user enters a number or nothing at all, macro 
+<code class="cmd">`two'</code> will be created, containing the floating-point 
+number specified or <code>3.14</code>.
+</p>
+
+<p>
+Option <code class="cmd">three()</code>, declared 
+<code class="cmd">three(string)</code>, allows a string argument&#8212;meaning 
+that it can be anything.  Whatever the user types inside the parentheses will 
+be copied to a macro named <code class="cmd">`three'</code>.  If the user types
+nothing, macro <code class="cmd">`three'</code> will contain <code>""</code>.
+</p>
+
+<p>
+Option <code class="cmd">four()</code>, declared 
+<code class="cmd">four(varlist)</code>, allows a varlist argument.  
+Whatever the user types will be interpreted as a varlist, the abbreviations 
+and shorthands will be expanded, and the result will be stored in macro 
+<code class="cmd">`four'</code>.  If the user types nothing, macro 
+<code class="cmd">`four'</code> will contain <code>""</code>.
+</p>
+
+<p>
+Option <code class="cmd">five()</code>, declared 
+<code class="cmd">five(numlist)</code>, allows a numlist argument, which is a
+fancy list of numbers; see <code class="cmd">help numlist</code>.  Whatever the
+user types will be interpreted as a numlist, expanded, and stored in macro
+<code class="cmd">`five'</code>.
+</p>
+
+
+<p>
+Option <code class="cmd">six()</code>, declared 
+<code class="cmd">six(passthru)</code>, is a variation on the option coded 
+<code class="cmd">three(string)</code>, the difference being that passthrough 
+options include the option name and a parenthesis-bound argument.  As with all 
+options, the macro <code class="cmd">`six'</code> will be created or not 
+depending on whether the user -specified option 
+<code class="cmd">six()</code>.  In this case, if the user does specify option 
+<code class="cmd">six()</code>, macro <code class="cmd">`six'</code> will 
+contain <code>six( <span class="repl">exactly what the user typed</span>)</code>.
+</p>
+
+<p>
+Option <code class="cmd">seven()</code>, declared 
+<code class="cmd">seven(namelist)</code>, is similar to option 
+<code class="cmd">four()</code>.  However, unlike varlist, namelist is the
+appropriate way to obtain a user specified list of just about anything other
+than existing variables.  This could include e.g., a list of matrices, new
+variables.  Whatever names the user types will be stored in the macro 
+<code class="cmd">`seven'</code>.  If the user types nothing, macro 
+<code class="cmd">`seven'</code> will contain <code>""</code>.
+</p>
+
+<p>
+Option <code class="cmd">eight()</code>, declared 
+<code class="cmd">eight(cilevel)</code>, is declared to require a valid level 
+for a confidence interval.  Valid levels are between 10 and 99.99 with at most 
+two digits after the decimal point.  If the user types, for example, 
+<code class="cmd">eight(5)</code> or <code class="cmd">eight(35.654)</code>, 
+<code class="cmd">syntax</code> produces an error, and everything stops:
+</p>
+
+<p>
+There is an ninth kind of option.  If you specify an asterisk (
+<code class="cmd">*</code>) on the <code class="cmd">syntax</code> command,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [,                              ///
+     one(integer 1)  two(real 3.14)  three(string)         ///
+     four(varlist)   five(numlist)    six(passthru)        ///
+     seven(namelist) eight(cilevel)  *
+                                    ^^^
+</code></pre>
+
+<p>
+whatever other options the user types will be allowed and placed into a local
+macro <code class="cmd">`options'</code>.  For instance,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, Detail *]
+</code></pre>
+
+<p>
+would allow the <code class="cmd">detail</code> option (abbreviation 
+<code class="cmd">d</code>), and that option would be put into 
+<code class="cmd">`detail'</code>, but any other options the user typed would 
+not be considered an error.  Say the user typed
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mycmd ..., detail saving(mygph, replace)
+</code></pre>
+
+<p>
+After the parsing, <code class="cmd">`detail'</code> would contain 
+<code>detail</code>, and <code class="cmd">`options'</code> would contain 
+<code>saving(mygph, replace)</code>.  If the user typed
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mycmd ..., saving(mygph, replace)
+</code></pre>
+
+<p>
+<code class="cmd">`detail'</code> would contain nothing, but 
+<code class="cmd">`options'</code> would still contain
+<code>saving(mygph, replace)</code>.  If the user typed
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mycmd ..., detail 
+</code></pre>
+
+<p>
+<code class="cmd">`detail'</code> would contain <code>detail</code>, and 
+<code class="cmd">`options'</code> would contain <code>""</code>.  
+</p>
+
+<p>
+With <code class="cmd">*</code>, the user can specify no extra options, one
+extra option, or many extra options.  For example,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mycmd ..., detail border saving(mygph, replace)
+</code></pre>
+
+<p>
+would put <code>detail</code> in <code class="cmd">`detail'</code> and 
+<code>border saving(mygph, replace)</code> in 
+<code class="cmd">`options'</code>.
+</p>
+
+<p>
+This is especially useful for creating commands where you wish to allow all
+options of some other command because, later in your code, you will be
+executing that other command.  For instance, say that 
+<code class="cmd">mycmd</code> is going to draw a graph and that, in addition 
+to the <code class="cmd">detail</code> option, you want to allow all the 
+options of the <code class="cmd">scatter</code> command.  One way would be to 
+create a long <code class="cmd">syntax</code> command specifying the options
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, ///
+Detail Msymbol(passthru) Connect(passthru) SAVing(passthru) ...]
+</code></pre>
+
+<p>
+and then later in your code including all the options explicitly:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+scatter ..., `msymbol' `connect' `saving' ...
+</code></pre>
+
+<p>
+It is easier to code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax [varlist] [if] [in] [, Detail *]
+</code></pre>
+
+<p>
+and then, later, code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+scatter	..., `options'
+</code></pre>
+
+<p>
+This leaves <code class="cmd">scatter</code> to issue proper error messages if
+anything in <code class="cmd">`options'</code> is invalid for the 
+<code class="cmd">scatter</code> command. An added benefit is that, if new
+options are added to the <code class="cmd">scatter</code> command in the
+future, your command automatically inherits these new options without your
+having to change your code.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="advanced"></a>4. Parsing complicated syntax</h3>
+
+<p>
+As an example of a complicated parsing problem, let's pretend we were rewriting
+Stata's <code class="cmd">ttest</code> command, which has three syntaxes:
+</p>
+
+<pre class="codeblock">
+(1)<code class="cmd">ttest varname == # [if exp] [in range]</code>
+
+(2)<code class="cmd">ttest varname1 == varname2 [if exp] [in range]</code>
+
+(3)<code class="cmd">ttest varname [if exp] [in range], by(groupvar) [unequal welch]</code>
+</pre>
+
+<p>
+The first syntax is for testing the mean of a variable against a constant, the
+second for testing the equality of means of two variables in matched data, and
+the third for testing the equality of means between two groups in unmatched
+data.  Corresponding to these three syntaxes are three different statistical
+procedures that we want to carry forth.
+</p>
+
+<p>
+The way to attack this problem is to write three different commands:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1 varname = # [if exp] [in range]
+
+tt_2 varname1 = varname2 [if exp] [in range]
+
+tt_3 varname [if exp] [in range], by(groupvar) [unequal welch]
+</code></pre>
+
+<p>
+Each of those commands would be pretty easy to write, so let's pretend we have
+written them and stored them in <code>tt_1.ado</code>, 
+<code>tt_2.ado</code>, and <code>tt_3.ado</code>.  
+</p>
+<a name="2eq"></a>
+<table class="technote">
+
+<tr>
+<td>
+<h4>Technical Note: Using == or = in the syntax of the command</h4>
+<p>
+In Stata 9, the syntax for <code class="cmd">ttest</code> changed from using
+one equal sign (=) to using two equal signs (==).  Because 
+<code class="cmd">ttest</code> is performing a comparison rather than 
+performing an
+assignment, your final version of the command should use two equal signs (==)
+in the syntax.  In lecture 5 we will show you how to parse the second equal
+sign out using the <code class="cmd">gettoken</code> command, but for now we
+will use one equal sign in our syntax.
+</p>
+
+</td>
+</tr>
+</table>
+
+<p>
+I start working on a problem from the top down:  I do not write 
+<code>tt_1.ado</code>,
+<code>tt_2.ado</code>, <code>tt_3.ado</code> 
+yet because I might decide to change the design
+as I write the top.  Right now, I know merely that I could write three such
+programs, and if all turns out as I plan, I will eventually write them.
+</p>
+
+<p>
+Right now, my problem is to write <code>ttest.ado</code>, assuming
+the existence of <code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>,
+and <code class="cmd">tt_3</code>.  A merged syntax diagram for 
+<code class="cmd">ttest</code>, written generically, is 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+ttest varname [=exp] [if exp] [in range] [, by(groupvar) unequal welch ]
+</code></pre>
+
+<p>
+and corresponding to this syntax diagram are rules.  If you specify 
+<code class="cmd">=<span class="repl">exp</span></code>, it must be a number or a variable name, 
+and <code class="cmd">by(groupvar)</code> cannot be specified, and so on.  I'll
+worry about these rules later.  To generically parse the command, the code is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax varname [=exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+</code></pre>
+
+<table class="technote">
+
+<tr>
+<td>
+
+<h4>Aside:  In many older Stata programs, you will see the line</h4>
+
+<pre class="codeblock"><code class="cmd">
+tokenize `varlist'
+</code></pre>
+
+<p>
+following <code class="cmd">syntax</code>, but in this program, that is not
+necessary.
+</p>
+
+<p> 
+<code class="cmd">syntax</code> is called a high-level parse&#8212;it
+interprets <code class="cmd">`0'</code> according to Stata syntax.  After 
+<code class="cmd">syntax</code>, whatever variables the user specified are 
+stored into <code class="cmd">`varlist'</code>.
+</p>
+
+<p>
+<code class="cmd">tokenize `varlist'</code> is called a low-level parse.  It
+takes what is in <code class="cmd">`varlist'</code> and breaks it into words,
+re-storing the words into <code class="cmd">`1', `2', `3',</code> ....  We
+follow a high-level parse with a low-level parse when we need to use the
+variable names separately. In other programs, it is enough to be able to refer
+to the list as a whole.
+</p>
+
+<p>
+In this program, however, there is no distinction between the list and the
+individual names because we know the list contains exactly one variable name.
+We know that because we declared
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax varname [=exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+       ^^^^^^^
+</code></pre>
+
+<p>
+at the outset.  Therefore, we can to refer to the single variable as 
+<code class="cmd">`varlist'</code>.  Rather than coding 
+<code class="cmd">varname</code> above, we could have coded 
+<code class="cmd">varlist(max=1)</code>.  Both mean the same thing.
+</p>
+
+<p>
+Before Stata 7, the <code class="cmd">foreach</code> command did not exist.
+Whenever a programmer needed to process a list of variables, the accepted
+method was to <code class="cmd">tokenize</code> the varlist and then use a
+<code class="cmd">while</code> loop to operate on each variable in the list in
+turn. With the introduction of <code class="cmd">foreach</code>, this is no
+longer needed, and a programmer can simply process the list of variables stored
+in the macro <code class="cmd">`varlist'</code> following the 
+<code class="cmd">syntax</code> command.
+</p>
+
+</td>
+</tr>
+
+</table>
+
+<p>
+Once the <code class="cmd">syntax</code> parsing is out of the way, I can begin
+to think about the three syntaxes in particular.  For instance, my code might
+continue with
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`exp'"=="" {</code>
+     /* it must be the syntax 3 case */
+<code class="cmd">}</code>
+<code class="cmd">else {</code>
+     /* it is syntax 1 or syntax 2 */
+<code class="cmd">}</code>
+</pre>
+
+<p>
+To determine if what the user typed corresponds to syntax 1 or 2, I need to
+look at the contents of <code class="cmd">`exp'</code> to see whether it is a
+number or a variable name.  As I have set things up, 
+<code class="cmd">`exp'</code> contains <code>=<span class="repl">whatever</span></code>, 
+but I want to look at just the <span class="repl">whatever</span> portion.  
+I could write code to strip the leading equals sign, or I could go back and 
+change my parsing setup to tell Stata to leave off the equals sign when 
+storing the =<span class="repl">exp</span>.  The second is easier, so my 
+parsing step becomes
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+                 ^
+</code></pre>
+
+<p>
+Note that I insert a forward slash.
+</p>
+
+<p>
+After the <code class="cmd">syntax</code>, if <code class="cmd">`exp'</code>
+contains something, it does not contain the leading equals sign.  So, now the
+code following the <code class="cmd">syntax</code> could read
+</p>
+
+<pre class="codeblock">
+<code class="cmd">if "`exp'"=="" {</code>
+     /* it must be the syntax 3 case */
+<code class="cmd">}</code>
+<code class="cmd">else {</code>
+     /* it is syntax 1 or syntax 2 */
+     <code class="cmd">capture confirm number `exp'</code>
+     <code class="cmd">if _rc==0 {</code>
+          /* it is syntax 1 */
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          /* it is syntax 2 */
+     <code class="cmd">}</code>
+<code class="cmd">}</code>
+</pre>
+
+<p>
+<code class="cmd">capture</code> we covered in NC-151.  It captures any output
+and error codes produced by the command it precedes.  After 
+<code class="cmd">capture</code>, we can look at <code class="cmd">_rc</code> 
+to see how things went.  <code class="cmd">confirm</code> was not discussed in 
+151. I'll let you learn all the details of <code class="cmd">confirm</code> on 
+your own&#8212;type <code class="cmd">help confirm</code> in Stata&#8212;but it is pretty easy.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. confirm number <span class="repl">anything</span>
+</code></pre>
+
+<p>
+looks at <span class="repl">anything</span> and determines if it could be
+interpreted as a number.  If it can, <code class="cmd">confirm</code> does
+nothing.  If not, <code class="cmd">confirm</code> issues the appropriate error
+message and nonzero return code.  Try it interactively:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. confirm number 5</code>
+
+<code class="cmd">. confirm number -2.5</code>
+
+<code class="cmd">. confirm number mpg</code>
+'mpg' found where number expected
+r(7);
+
+<code class="cmd">. confirm number</code>
+'' found where number expected
+r(7);
+</pre>
+
+<p>
+With a <code class="cmd">capture</code> in front of the 
+<code class="cmd">confirm</code>, the error message is suppressed, but if we 
+examine the return code, <code class="cmd">_rc</code>, we will find out 
+whether what follows the <code class="cmd">confirm number</code> can be 
+interpreted as a number.  In the case of our program outline, 
+<code class="cmd">confirm number `exp'</code> will set 
+<code class="cmd">_rc</code> to 0 if <code class="cmd">`exp'</code> 
+is a number and to something else (7, actually, but who cares?) if 
+<code class="cmd">`exp'</code> is not a number.
+</p>
+
+<p>
+Thus, assuming the existence of <code>tt_1.ado</code>, 
+<code>tt_2.ado</code>, and <code>tt_3.ado</code>, our 
+<code>ttest.ado</code> file could read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program ttest
+     syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+               tt_2 `0'
+          }
+     }
+end
+</code></pre>
+
+<p>
+Note the way <code class="cmd">`0'</code> is being passed along to the
+subprogram.  We parsed <code class="cmd">`0'</code> using 
+<code class="cmd">syntax</code> to decide which subprogram to use, but the 
+entire contents of <code class="cmd">`0'</code> are of interest to the 
+subprograms, so we just pass through everything the user typed.
+</p>
+
+<p>
+Stata already has a <code class="cmd">ttest</code> command, so let's call our
+new command <code class="cmd">mytt</code>.  Here is what my first draft of
+<code class="cmd">mytt</code> would look like:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec1/mytt.ado">mytt.ado</a></th> 
+</tr>
+
+<tr><td><pre class="cutout"><code class="cmd">
+program mytt
+     syntax varname [=/exp] [if] [in] [, BY(varlist) UNEqual Welch ]
+
+     if "`exp'"=="" {
+          tt_3 `0'
+     }
+     else {
+          capture confirm number `exp'
+          if _rc==0 {
+               tt_1 `0'
+          }
+          else {
+               tt_2 `0'
+          }
+     }
+end
+
+program tt_1
+     display "tt_1 `0'"
+end
+
+program tt_2
+     display "tt_2 `0'"
+end
+
+program tt_3
+     display "tt_3 `0'"
+end
+</code></pre>     
+</td> 
+</tr> 
+
+</table>
+
+<p>
+Notice what I did for testing this first version:  I did not bother to actually
+write <code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>, and 
+<code class="cmd">tt_3</code>. I just wrote little stubs that displayed the 
+program name and the arguments that they received.  That will allow me to test 
+whether my top-level program is working, and then I can fill in the 
+calculations and whatever else is necessary later.
+</p>
+
+<p>
+Also note that I did not create separate files <code>tt_1.ado</code>, 
+<code>tt_2.ado</code>, and <code>tt_3.ado</code> containing programs 
+<code class="cmd">tt_1</code>,
+<code class="cmd">tt_2</code>, and <code class="cmd">tt_3</code>&#8212;I just
+put the <code class="cmd">tt_*</code> programs at the end of <code>mytt.ado</code>.  I will have a lot to say about this shortly, but
+for now, just notice that I can do this and that it certainly is convenient.
+</p>
+
+<p>
+Let's test our program and see how it is working:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt</code>
+varlist required
+r(100);
+</pre>
+
+<p>
+Well, the error message is not exactly right, but I could probably live with
+it.  Let's see if it understands syntax 1:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20</code>
+tt_1 mpg=20
+</pre>
+
+<p>
+Our program executes <code class="cmd">tt_1</code> as it should.  Let's check
+the other two syntaxes:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=weight</code>
+tt_2 mpg=weight
+
+<code class="cmd">. mytt mpg, by(foreign)</code>
+tt_3 mpg, by(foreign)
+</pre>
+
+<p>
+Okay, our switching program, <code class="cmd">mytt</code>, works as it should.
+Our top-level program will pass along more than it should. For instance, typing
+<code class="cmd">mytt mpg</code> without the <code class="cmd">by()</code>
+option makes no sense, and yet
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg</code>
+tt_3 mpg
+</pre>
+
+<p>
+but we can handle that in <code class="cmd">tt_3</code>.  All that is required
+of <code class="cmd">mytt</code> is that it get us into the right subprogram.
+</p>
+
+<p>
+The small messages produced by the <code class="cmd">tt_*</code> subroutines
+may have disguised how much we have just accomplished, so let me emphasize it.
+We have looked at what the user typed, and we have determined from that the
+correct statistical approach.
+</p>
+
+<p>
+If the user types <code class="cmd">mytt mpg=20</code>, our program has figured
+out that the user has requested a test against a constant and branched off to
+the appropriate routine, which will contain the appropriate statistical
+formula, for that problem.
+</p>
+
+<p>
+If the user types <code class="cmd">mytt mpg=weight</code>, mytt knows that the
+user has requested a test of the equality of means in a matched sample and so
+mytt branches off to the appropriate routine, which will contain the
+appropriate formula, for that problem.
+</p>
+
+<p>
+If the user types <code class="cmd">mytt mpg, by(foreign)</code>, mytt knows
+that this is the test of the equality of means in unmatched data, so it
+branches off to the appropriate routine, which will eventually contain the
+appropriate formula, for that problem.
+</p>
+
+<p>
+Categorizing 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20</code>
+
+<code class="cmd">. mytt mpg=weight</code>
+
+<code class="cmd">. mytt mpg, by(foreign)</code>
+</pre>
+
+<p>
+is a sophisticated problem in pattern recognition.
+</p>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="aside"></a>5. Aside on subprograms</h3>
+
+<p>
+Before continuing with our development of the <code class="cmd">ttest</code>
+equivalent <code class="cmd">mytt</code>, I want to make two comments about
+subprograms, one substantive and the other Stata specific.
+</p>
+
+<p>
+Substantively, did you notice how I go about writing a program?  I assume
+solutions to big pieces of the problem and work on one piece at a time.  My
+assumed solutions form the subprograms, in this case 
+<code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>, and 
+<code class="cmd">tt_3</code>.  Most problems lend themselves to this 
+approach, where I start at the top and peel off one layer of the problem at a 
+time.  The advantages of this approach are
+</p>
+
+<ol>
+<li>The programs themselves are short and well defined, so they are easier to
+understand and debug, and</li>
+
+<li>I can test as I go along, just as I have done with the 
+<code class="cmd">display</code> statements.</li>  
+</ol>
+
+<p>
+The second advantage cannot be emphasized enough.  You do not want to spend
+hours in front of your computer assembling an untested masterpiece.  It won't
+work; debugging will be difficult; and worse, if you made a design mistake,
+which is easy to do, you will be tempted to patch around it to still make use
+of the rest of your glorious code.
+</p>
+
+<p>
+At this stage in developing <code class="cmd">mytt</code>, I have no investment
+in <code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>, and <code
+class="cmd">tt_3</code>.  If I have not thought carefully enough about this
+problem and now find myself looking at an unwritable or inelegant <code
+class="cmd">tt_1</code>, I can change the design at the top right now, and
+nothing is lost.
+</p>
+
+<p>
+Now, concerning Stata, I want you to notice that I put the <code
+class="cmd">program</code>s for <code class="cmd">tt_1</code>, <code
+class="cmd">tt_2</code>, and <code class="cmd">tt_3</code> in 
+<code>mytt.ado</code>.  Did you know I could do that?  Let me show you
+something else.  First, note that <code class="cmd">mytt</code> works:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mytt mpg=20
+tt_1 mpg=20
+</code></pre>
+
+<p>
+That means that the <code class="cmd">mytt</code> program executed and that
+<code class="cmd">mytt</code> passed control along to the <code
+class="cmd">tt_1</code> program because it was that subprogram that produced
+the message <code>tt_1 mpg=20</code>.  In fact, the <code
+class="cmd">tt_1</code> program reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     display "tt_1 `0'"
+end
+</code></pre>
+
+<p>
+and that means that, if I type <code class="cmd">tt_1 this is a test</code>,
+<code class="cmd">tt_1</code> would display <code>tt_1 this is a test</code>.
+Let's try it:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. tt_1 this is a test</code>
+unrecognized command
+r(199);
+</pre>
+
+<p>
+Clearly, the program <code class="cmd">tt_1</code> must exist&#8212;mytt used
+it&#8212;so how can <code class="cmd">tt_1</code> be an unrecognized command?
+Let's try mytt one more time: 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20</code>
+tt_1 mpg=20
+</pre>
+
+
+<p>
+I invite you to look back at <code>mytt.ado</code>.  The only line
+that could be producing the message is in the program <code
+class="cmd">tt_1</code>.  If you would like, you can go back and modify the
+definition of <code class="cmd">tt_1</code> by adding the line <code
+class="cmd">display "Hello from tt_1"</code> before the <code
+class="cmd">display</code> that is already there.  Resave 
+<code>mytt.ado</code>, type <code class="cmd">discard</code> at the 
+Stata prompt, and try the experiment again. Here is what will happen if you do 
+that: 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt mpg=20</code>
+Hello from tt_1
+tt_1 mpg=20
+
+<code class="cmd">. tt_1 this is a test</code>
+unrecognized command
+r(199);
+</pre>
+
+<p>
+This happens because <code class="cmd">tt_1</code> is a subprogram of mytt, and
+Stata knows it.  Program <code class="cmd">tt_1</code> is eligible for
+execution by any other program in the <code>mytt.ado</code> file
+but is unknown outside that file.  It is a private subprogram.  In fact, <code
+class="cmd">program dir</code> reveals this:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. program dir</code>
+mytt.tt_3         ado       80
+mytt.tt_2         ado       80
+mytt.tt_1         ado       80
+mytt              ado      288
+                      --------
+                           528
+</pre>
+
+
+<p>
+<code class="cmd">program dir</code> shows that there is a program called <code
+class="cmd">mytt</code> loaded as an ado-file, and it shows that there are
+<code class="cmd">mytt.tt_1</code>, <code class="cmd">mytt.tt_2</code>, and
+<code class="cmd">mytt.tt_3</code>.  "mytt.tt_1" is not really the name of the
+program; that is just <code class="cmd">program dir</code> jargon for "there is
+a program called <code class="cmd">tt_1</code> callable only from within the
+mytt system".
+</p>
+
+<p>
+Private subprograms are useful because
+</p>
+
+<ol>
+     <li>They let you organize your work without a proliferation of
+         ado-files, and</li>
+
+     <li>They give you considerable flexibility on how you name your
+         subprograms.</li>
+</ol>
+
+<p>
+Number 2 comes about because the names really are private.  There could, for
+instance, be a subroutine named <code>kappa</code> in the <code>mytt.ado</code>
+file, and Stata would not confuse that <code>kappa</code> with the Stata
+command <code class="cmd">kappa</code>.  If <code class="cmd">program
+kappa</code> appeared in <code>mytt.ado</code>, all references to the command
+<code class="cmd">kappa</code> inside the ado-file would be to the locally
+defined program.  All references outside the ado-file would be to the Stata
+<code class="cmd">kappa</code> command.
+</p>
+
+<p>
+Clarification:  you do not have complete freedom to name subprograms.  Built-in
+Stata commands&#8212;commands implemented in the Stata binary
+executable&#8212;cannot be redefined.  This freedom, however, extends to
+subprograms having the same name as other ado-files, or even subprograms within
+other ado-files where there is no confusion.
+</p>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="exer"></a>6. Exercises</h3>
+
+<ol>
+<li>
+<p>
+Write a program <code class="cmd">disyntax1</code> that takes the most common
+elements of Stata syntax and displays the contents of each macro created by the
+<code class="cmd">syntax</code> command.  For example, you might use the auto
+dataset,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. disyntax1 mpg price = 1 using some_file if rep78&lt;. &amp; make=="AMC Concord" in 1/25</code>
+
+varlist contains |mpg price|
+exp     contains |= 1 |
+using   contains |using `"some_file"'|
+if      contains |if rep78&lt;. &amp; make=="AMC Concord" |
+in      contains |in 1/25|
+</pre>
+
+</li>
+<li>
+<p>
+Modify the above program to also display the following types of options: 
+<code class="cmd">by()</code>, <code class="cmd">detail</code>, and 
+<code class="cmd">offset()</code>.  Here <code class="cmd">by()</code> should
+require a variable list, and offset should accept only a number.  For example,
+you might use the auto dataset,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. disyntax2 mpg, by(foreign) detail offset(10)</code>
+	
+varlist contains |mpg|
+exp     contains ||
+using   contains ||
+if      contains ||
+in      contains ||
+by      contains |foreign|
+detail  contains |detail|
+offset  contains |10|
+</pre>
+
+</li>
+<li>
+<p>
+Write a program <code class="cmd">myci1</code> that uses the returned values of
+<code class="cmd">summarize</code> to construct and display the limits of a 95%
+CI for the mean.  For example, you might use the auto dataset,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. summ mpg</code>
+(output)
+
+<code class="cmd">. myci1</code>
+ll = 19.979121
+ul = 22.615473
+</pre>
+</li>
+
+<li>
+<p>
+Modify the previous program so that it gives a meaningful error message if
+<code class="cmd">r(mean)</code> or <code class="cmd">r(sd)</code> is
+missing.
+</p>
+</li>
+</ol>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+
+<!-- exercise NetCourseNow -->
+
+<div class="section_div"></div>
+
+<div class="center"><h2>End of Lecture 1</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion"name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td class="nc4lec" colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>
+

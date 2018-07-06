@@ -1,0 +1,2850 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/10/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152&#8212;Lecture 4</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+<div class="center">
+<table class="ncbanner">
+<tr>
+<td><img src="../images/lecture4v.gif" alt="Lecture 4"></td>
+<td><img src="../images/nc152banner.gif" alt="Banner"></td>
+</tr>
+</table>
+</div>
+<div class="section_div"></div>
+
+<h2><a name="toc"></a>Lecture 4 - Table of Contents</h2>
+<div class="main_section"><a href="#where">1. Where are we?</a></div>
+<div class="main_section"><a href="#saved">2. Saved results</a></div>
+<div class="main_section"><a href="#what">3. What can be returned in r()?</a></div>
+<div class="main_section"><a href="#referring">4. Referring to returned results in other preograms</a></div>
+<div class="main_section"><a href="#to">5. Referring to returned results in the program that sets them</a></div>
+<div class="main_section"><a href="#other">6. Other types of returned values: s() and e() </a></div>
+<div class="main_section"><a href="#sclass">7. S-class returned values</a></div>
+<div class="main_section"><a href="#eclass">8. E-class returned results</a></div>
+<div class="main_section"><a href="#writing">9. Writing postestimation commands</a></div>
+<div class="main_section"><a href="#an">10. Writing an estimation (e-class) command</a></div>
+<div class="main_section"><a href="#alternative">11. An alternative estimation command outline</a></div>
+<div class="main_section"><a href="#estimation">12. Writing estimation commands from first principles</a></div>
+<div class="main_section"><a href="#commands">13. Writing estimation commands via maximum likelihood</a></div>
+<div class="main_section"><a href="#exercises">14. Exercises</a></div>
+
+<div class="section_div"></div>
+
+<h3><a name="where"></a>1. Where are we?</h3>
+<p>
+Following a beginning programming course is easier than following an advanced
+programming course.  Why?  Beginning programming involves writing simple
+programs, which can be shown in their entirety.
+</p>
+
+<p>
+Advanced programming courses, on the other hand, quickly become a survey of
+advanced programming tools without context:  here are all the tools you have for
+parsing, for manipulation, and so on, but it is difficult to show these advanced
+tools in use because they tend to be used in advanced programs, which are
+usually long.  One solution is that advanced courses do not show the tools
+being used but just catalog them.
+</p>
+
+<p>
+To avoid that, I have introduced the tools in the context of the <code
+class="cmd">mytt</code> program, but I do not want you to think this is a
+course about how to program the t test.  Moreover, you also need to understand
+that we have taken a small problem and pounded it with sledgehammers, mainly
+because I wanted to demonstrate the use of the heavy hammers.
+</p>
+
+<p>
+Let's back up a minute and catalog what we have covered.
+</p>
+
+<p>
+<ol>
+<li>We know how Stata passes arguments to commands.  <code
+class="cmd">`1'</code>, <code class="cmd">`2'</code>, ...  are the positional
+parameters, and <code class="cmd">`0'</code> is what the user typed.</li>
+
+<li><code class="cmd">syntax</code> can be used to parse <code class="cmd">`0'</code>.</li>
+
+<li>Alternatively, we can parse <code class="cmd">`0'</code>&#8212;or <code class="cmd">`1'</code>, <code class="cmd">`2'</code>, ...
+&#8212;however we wish.</li>
+
+<li>Alternatively, we can parse <code class="cmd">`0'</code>&#8212;or <code class="cmd">`1'</code>, <code class="cmd">`2'</code>, ...
+&#8212;over and over using different techniques.</li>  
+
+<li><code class="cmd">mark</code> and <code class="cmd">marksample</code> can
+be used to mark the relevant subsample.</li>
+
+<li>Complicated programs can be broken in subroutines, but this is really more
+an issue of style than a Stata feature.  Subroutines are good style.  If you
+program with many subroutines, your programs will be easier to code,
+debug, and modify in the future.</li>
+
+<li>We can use <code class="cmd">set trace on</code> to debug programs.  That
+is a Stata feature that you will want to master.</li>
+
+<li>We have two kinds of double quotes: " " and `" "'.  That is a Stata detail,
+but an important one.</li>
+
+<li>We can use other Stata commands in our programs and access their calculated
+results using <code class="cmd">r()</code>, although we already knew that from
+NC-151.</li>
+
+<li>We can have temporary variables in our programs.  Temporary variables
+vanish automatically when our program concludes.  Use <code
+class="cmd">tempvar</code> to place new names in macros, and then use the
+contents of the macros as your variable names.  </li>
+
+<li>In addition to macros, Stata has scalars, which are more accurate.  Scalars
+carry full double precision (about 16.5 digits), whereas macros vary in the
+number of digits carried, but never is it less than 12.</li>
+
+<li> Even full double-precision accuracy will surprise you because base 10 does
+not translate into base 2 well.  Numbers like .1, .01, etc., have no exact
+finite-digit binary representation.  Macros are base 10.  Scalars are base 2.
+Stata always does arithmetic in base 2 (and in double precision).</li>
+
+</ol>
+
+<p>
+Every one of these 12 features I demonstrated in the context of the <code
+class="cmd">mytt</code> program.
+</p>
+
+<p>
+I use these 12 features in nearly every program I write.  You will want to
+master them, and if you mastered no more than these 12, that would not be
+so bad.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="saved"></a>2. Saved results</h3>
+<p>
+Now that we have caught up, we are ready to talk about saved results.  Stata
+commands generally return the results of calculations in <code
+class="cmd">r()</code>&#8212;or sometimes <code class="cmd">e()</code> or <code
+class="cmd">s()</code>, but we'll get to that later.  Returned results are
+important because they allow us to use Stata commands as subroutines in the
+programs we write.  In fact, we did exactly that in <code
+class="cmd">mytt</code> when we used the <code class="cmd">summarize</code>
+command.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg</code>
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     mpg |      74     21.2973   5.785503         12         41  
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(N)        =  74
+       r(sum_w)    =  74
+       r(mean)     =  21.2972972972973
+       r(Var)      =  33.47204738985561
+       r(sd) =  5.785503209735141
+       r(min)      =  12
+       r(max)      =  41
+       r(sum)      =  1576
+</pre>
+
+<p>
+<code class="cmd">summarize</code> saves all sorts of things, and we used <code
+class="cmd">r(N)</code>, <code class="cmd">r(mean)</code>, and <code
+class="cmd">r(Var)</code> in <code class="cmd">mytt</code>.  Doing that saved
+us from having to write code to calculate the number of observations, mean, and
+variance.
+</p>
+
+<p>
+When we write a new program, it should save its results in <code
+class="cmd">r()</code>.  Our command might produce a pretty display for
+end-user use, but if it also saves its results, we can <code
+class="cmd">quietly</code> run the new command and use those results in future
+programs.
+</p>
+
+<p>
+Saving results is not hard.  To save results in <code class="cmd">r()</code>, 
+</p>
+
+<ol>
+
+<li>We add the <code class="cmd">rclass</code> option to the <code
+class="cmd">program</code> statement.</li>
+
+<li>We add <code class="cmd">return</code> statements in the body of our
+program that return what we want to return.</li>
+</ol>
+
+<p>
+Here is an artificial example:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program example, rclass
+     return scalar x = 1
+end
+</code></pre>
+
+<p>
+Try it:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. example</code>
+
+<code class="cmd">. ret list</code>
+
+scalars:
+       r(x)        =  1
+</pre>
+
+<p>
+It is instructive to omit the <code class="cmd">rclass</code> option and the
+<code class="cmd">return</code> from this example.  Let's begin by forgetting
+to specify the <code class="cmd">rclass</code> option,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. program example2 </code>
+1. return scalar x = 2
+2. end
+
+<code class="cmd">. example2</code>
+non r-class program may not set r()
+r(151);
+</pre>
+
+<p>
+If you do not specify option <code class="cmd">rclass</code>, you cannot use
+<code class="cmd">return</code>; if you try to use <code
+class="cmd">return</code>, Stata stops your program.  Now let's include <code
+class="cmd">rclass</code> and omit the <code class="cmd">return</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. program example3, rclass</code>
+1. local junk = 3       /* just so program has something to do */
+2. end
+
+<code class="cmd">. example3</code>
+
+<code class="cmd">. ret list</code>
+
+. _
+</pre>
+
+<p>
+If you specify option <code class="cmd">rclass</code> but do not use <code
+class="cmd">return</code> in the body of your program, <code
+class="cmd">r()</code> is cleared.  That is not an error, although it may not
+be what you intended.  By specifying <code class="cmd">rclass</code>, you said
+your program returns results in <code class="cmd">r()</code>, and then, by not
+using <code class="cmd">return</code>, you simply returned nothing.
+</p>
+
+<p>
+This holds some surprises, however, so let me show you.  Consider the
+following two programs:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program example4                          program example5, rclass
+     quietly summarize `1'                     quietly summarize `1'
+end                                       end
+</code></pre>
+
+<p>
+The only difference between these programs is that <code
+class="cmd">example5</code> is declared to be r-class.  I want you to run <code
+class="cmd">example4 mpg</code> and type <code class="cmd">return list</code>,
+and then run <code class="cmd">example5 mpg</code> and type <code
+class="cmd">return list</code>.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. example4 mpg                            . example5 mpg</code>
+
+<code class="cmd">. return list                             . return list </code>
+
+scalars:                                  . _
+       r(N)        =  74
+       r(sum_w)    =  74
+       r(mean)     =  21.2972972972973
+       r(Var)      =  33.47204738985561
+       r(sd)       =  5.785503209735141
+       r(min)      =  12
+       r(max)      =  41
+       r(sum)      =  1576
+</pre>
+
+<p>
+Understand what just happened. <code class="cmd">example5</code> was declared
+to be r-class but did not have any <code class="cmd">return</code> statements;
+it returned nothing.  <code class="cmd">example4</code> was not declared to be
+r-class, but it did return something.  It returned what the last command coded
+in it, <code class="cmd">summarize</code>, returned.
+</p>
+
+<p>
+Why?  It is not correct to say that non&#8211;r-class programs return nothing.
+Non&#8211;r-class programs return whatever results happen to be lying around in
+<code class="cmd">r()</code> at the time the program concludes.  <code
+class="cmd">example4</code> ran <code class="cmd">summarize</code> and left
+behind the results from <code class="cmd">summarize</code>.  We explicitly told
+Stata that <code class="cmd">example5</code> was r-class, on the other hand, so
+Stata went to extra work to distinguish the results returned by commands inside
+<code class="cmd">example5</code> from the returned results of <code
+class="cmd">example5</code> itself.
+</p>
+
+<p>
+Now I want to show you another variation on <code class="cmd">example5</code>.
+I will put the original, <code class="cmd">example5</code>, on the left and the
+new version, <code class="cmd">example6</code>, on the right:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program example5, rclass                  program example6, rclass
+     quietly summarize `1'                     quietly summarize `1'
+end                                            return add
+                                          end
+</code></pre>
+
+<p>
+The new statement I coded is <code class="cmd">return add</code>.  Now, if you
+run <code class="cmd">example6</code>, results will be the same as those from
+the <code class="cmd">summarize</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. example6 mpg</code>
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(N)        =  74
+       r(sum_w)    =  74
+       r(mean)     =  21.2972972972973
+       r(Var)      =  33.47204738985561
+       r(sd)       =  5.785503209735141
+       r(min)      =  12
+       r(max)      =  41
+       r(sum)      =  1576
+</pre>
+
+<p>
+<code class="cmd">return add</code> is how r-class commands add all the
+returned results from another Stata command to their returned results.
+</p>
+
+<p>
+Bear with me&#8212;I have two more things to show you, and then I will explain.
+First, let me emphasize that <code class="cmd">return add</code> really is an
+add,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program example7, rclass</code>
+<code class="cmd">return scalar before = 1  </code>      /*  &lt;-- new */
+<code class="cmd">quietly summarize `1'</code>
+<code class="cmd">return add</code>
+<code class="cmd">return scalar after = 2  </code>       /*  &lt;-- new */
+<code class="cmd">end</code>
+
+<code class="cmd">. example7 mpg</code> 
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(after)    =  2                     &lt;-- note the new r(after)
+       r(sum)      =  1576
+       r(max)      =  41
+       r(min)      =  12
+       r(sd)       =  5.785503209735141
+       r(Var)      =  33.47204738985561
+       r(mean)     =  21.2972972972973
+       r(sum_w)    =  74
+       r(N)        =  74
+       r(before)   =  1                    &lt;-- note the new r(before)
+</pre>
+
+<p>
+and finally, I want to show you 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program example8, rclass</code>
+     <code class="cmd">return scalar before = 1</code>
+     <code class="cmd">quietly summarize `1'</code>
+     <code class="cmd">return add</code>
+     <code class="cmd">return scalar after = 2</code>
+     <code class="cmd">quietly summarize weight </code>         /*  &lt;-- new */
+<code class="cmd">end</code>
+</pre>
+
+<p>
+Look carefully at this program&#8212;the last statement does a <code
+class="cmd">summarize weight</code>.  If this program was not explicitly
+declared to be r-class, the result of that would be to leave in <code
+class="cmd">r()</code> the returned values from <code class="cmd">summarize
+weight</code>.  This program is r-class, however, and we did not say to return
+those values.  Anyway, here is the result of running it:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. example8 mpg </code>
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(after)    =  2                     &lt;-- r(after) 
+       r(sum)      =  1576                 ----------------------
+       r(max)      =  41                    &lt;--| 
+       r(min)      =  12                    &lt;--| 
+       r(sd)       =  5.785503209735141     &lt;--| r() from
+       r(Var)      =  33.47204738985561     &lt;--|    -summarize `1'-
+       r(mean)     =  21.2972972972973      &lt;--|
+       r(sum_w)    =  74                    &lt;--|
+       r(N)        =  74                   ----------------------
+       r(before)   =  1                     &lt;-- r(before)
+</pre>
+
+<p>
+The extra <code class="cmd">summarize weight</code> at the end of program did
+not corrupt what our program returned in <code class="cmd">r()</code>.  The
+results of running <code class="cmd">example8</code> are the same as those from
+running <code class="cmd">example7</code>.
+</p>
+
+<p>
+Let me summarize this:
+</p>
+
+<ol>
+<li>Programs are declared to be r-class by coding the <code
+class="cmd">rclass</code> option on the <code class="cmd">program</code>
+statement.</li>
+
+<li>If a program is not declared to be r-class, it returns in <code
+class="cmd">r()</code> whatever is left behind by the last command the program
+ran that returned something in <code class="cmd">r()</code>.</li>
+
+<li>If a program is declared to be r-class, it returns in <code
+class="cmd">r()</code> just those things specified by the <code
+class="cmd">return</code> statement(s).  There is no exception to this
+rule.</li>
+
+<li>The <code class="cmd">return</code> statements can be coded anywhere in the
+program.  They can be placed at the first line, last line, or any line between.
+</li>
+
+</ol>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="what"></a>3. What can be returned in r()?</h3>
+
+<p>
+Scalars, macros, and matrices:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program what, rclass</code>
+     <code class="cmd">return scalar x=2+2</code>
+     <code class="cmd">return local  y=3+2</code>
+     <code class="cmd">return local  txt "this is a text string"</code>
+     <code class="cmd">matrix A = (1,2\3,4)</code>
+     <code class="cmd">return matrix mymat A</code>
+<code class="cmd">end</code>
+
+<code class="cmd">. what</code>
+
+<code class="cmd">. return list</code>
+
+scalars:
+       r(x)        =  4
+
+ macros:
+       r(txt)      : "this is a text string"
+       r(y)        : "5"
+
+matrices:
+       r(mymat)    : 2 x 2
+</pre>
+
+<p>
+The only thing you need to know about this is that <code class="cmd">return
+matrix mymat A</code> returns the matrix by stealing it.  When Stata executes
+the <code class="cmd">return matrix mymat A</code> statement, it does not copy
+the matrix but moves it.  The result is that matrix A in the program no longer
+exists, but there is still a way of referring to it, and we will get to that.
+</p>
+
+<p>
+The <code class="cmd">return scalar</code> and <code class="cmd">return
+local</code> commands follow the same rules as the <code
+class="cmd">scalar</code> and <code class="cmd">local</code> commands.
+</p>
+
+<p>
+There are only two more issues:  referring to a returned quantity (1) in
+another program and (2) in the program that does the returning.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="referring"></a>4. Referring to returned results in other programs</h3>
+
+<p>
+We have already used returned results.  In <code class="cmd">mytt</code> we
+used <code class="cmd">r(N)</code>, <code class="cmd">r(mean)</code>, and <code
+class="cmd">r(Var)</code> set by <code class="cmd">summarize</code>.  Using
+returned results is the same, whether they are from <code
+class="cmd">summarize</code>, <code class="cmd">tabulate</code>, or one of your
+own r-class programs.  Here are the rules:
+</p>
+
+<ol>
+<li>A returned scalar is referred to as <code
+class="cmd">r(<span class="repl">name</span>)</code>.  You can use <code
+class="cmd">r(<span class="repl">name</span>)</code> in any context in which you can use a
+scalar.</li>
+
+<li>The contents of a returned macro are referred to as
+<code class="cmd">`r(<span class="repl">name</span>)'</code>, and you can use <code class="cmd">`r(<span class="repl">name</span>)'</code> in any
+context.</li>
+
+<li>
+<p>
+A returned matrix is referred to as <code
+class="cmd">r(<span class="repl">name</span>)</code>, and you can use <code
+class="cmd">r(<span class="repl">name</span>)</code> in almost any context in which you can refer to a matrix.
+</p>
+
+<p>
+So, we could write
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program myprog</code>
+     <code class="cmd">what</code>
+     <code class="cmd">display "returned x + 1 = " r(x)+1</code>
+     <code class="cmd">display "returned y + 1 = " `r(y)'+1</code>
+     <code class="cmd">display `"returned  txt is "`r(txt)'""'</code>
+     <code class="cmd">display _n "Here is returned matrix mymat*mymat':"</code>
+     <code class="cmd">matrix B = r(mymat)*r(mymat)'</code>
+     <code class="cmd">mat list B</code>
+<code class="cmd">end</code>
+
+<code class="cmd">. myprog</code>
+returned x + 1 = 5
+returned y + 1 = 6
+returned  txt is "this is a text string"
+</pre>
+
+<p>
+Here is returned matrix mymat*mymat':
+</p>
+
+<pre class="codeblock">
+symmetric B[2,2]
+    r1  r2
+    r1   5
+    r2  11  25
+
+</pre>
+
+<p>
+Also, another set of rules is sometimes handy:
+</p>
+</li>
+
+<li>
+If you refer to <code class="cmd">r(<span class="repl">name</span>)</code> and <code class="cmd">r(<span class="repl">name</span>)</code> is
+not defined, then missing value is returned.</li>
+
+<li>If you refer to <code class="cmd">`r(<span class="repl">name</span>)'</code> and <code class="cmd">`r(<span class="repl">name</span>)</code>'
+is not defined, then "" (an empty string) is substituted.</li>
+
+<li>Returned scalars are usually referred to as <code class="cmd">r(<span
+class="repl">name</span>)</code> and are used in expressions.  If, however, you
+refer to <code class="cmd">`r(<span
+class="repl">name</span>)'</code>&#8212;which you can use in any
+context&#8212;the printed form of the scalar is substituted.</li>
+
+<li>Returned macros are usually referred to as <code class="cmd">`r(<span
+class="repl">name</span>)'</code> and can be used in any context.  If, however,
+you refer to <code class="cmd">`r(<span class="repl">name</span>)'</code> in an
+expression context, a string is returned.
+</li>
+
+</ol>
+
+<p>
+Rules 4 and 5 turn out to be very useful, rule 6 is sometimes useful,
+and I have never yet found a use for rule 7.
+</p>
+
+<p>
+Rule 4 means that, if you write a program that returns scalars <code
+class="cmd">r(mean)</code> and <code class="cmd">r(Var)</code>, and if the
+results cannot be calculated, you can arrange your code to save missing value
+in <code class="cmd">r(mean)</code> and <code class="cmd">r(Var)</code>, or you
+can just not bother to set them at all.  It will make no difference to the
+consumer of your returned results because, either way, <code
+class="cmd">r(mean)</code> and <code class="cmd">r(Var)</code> will be missing.
+</p>
+
+<p>
+Rule 5 is the same as rule 4 for strings.  If your program is supposed to
+return in <code class="cmd">r(title)</code> the title, and the title is
+nothing, you can either set <code class="cmd">r(title)</code> to contain
+nothing or not bother to set the <code class="cmd">r(title)</code> at all.
+</p>
+
+<p>
+Rule 6 does not affect how you write programs that return results, but it is
+useful when you write programs that need to pass returned results to other
+programs.  For instance, I have just used <code class="cmd">summarize</code> to
+obtain <code class="cmd">r(mean)</code>.  I need to pass the calculated mean to
+a subroutine I have written, but that subroutine expects that I am going to
+pass the mean as a literal number.  I can code <code
+class="cmd">`r(mean)'</code> as its argument.  (See <a href="#exer2">Exercise
+2</a>.)
+</p>
+
+<p>
+Rule 7 is the mirror image of Rule 6, which is why it's there, but I've
+discovered no use for it.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="to"></a>5. Referring to returned results in the program that sets
+them</h3>
+
+<p>
+If you are writing a program that returns results, distinguish carefully
+between the results you will return and the results other programs return to
+you as you are making your calculations.  For instance, perhaps your program
+will return <code class="cmd">r(mean)</code>&#8212;the mean of
+something&#8212;and in the process of making the calculation, you need to use
+the <code class="cmd">r(mean)</code> returned by <code
+class="cmd">summarize</code> of some other variable.
+</p>
+
+<p>
+<code class="cmd">r()</code> always refers to results returned to you by some
+other program.  Thus <code class="cmd">r(mean)</code> is the value returned by
+some program you call&#8212;it is not the value you will return.
+</p>
+
+<p>
+Stata has another function, <code class="cmd">return()</code>, to refer to the
+values you will return&#8212;the values that ultimately will work their way
+into <code class="cmd">r()</code> when your program concludes.
+</p>
+
+<p>
+For instance, consider the following code:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program randr, rclass</code>
+     <code class="cmd">return scalar mean = 3 </code>
+     <code class="cmd">qui summarize mpg </code>
+     <code class="cmd">return scalar sum = return(mean)+r(mean)</code>
+<code class="cmd">end</code>
+</pre>
+
+<p>
+This program is artificial, but pretend that the first line is really some
+complicated block of code that resulted in the value you wanted to return for
+mean, the second line some long second calculation, and the third line a long
+calculation where you needed to combine the results of the first two blocks of
+code.
+</p>
+
+<p>
+In any case, the code actually says
+</p>
+
+<pre class="codeblock"><code class="cmd">
+return scalar mean = 3 
+</code></pre>
+
+<p>
+When my program concludes, I want <code class="cmd">r(mean)</code> to be 3.
+Stata does not set <code class="cmd">r(mean)</code> to 3 right now.  Stata
+actually sets <code class="cmd">return(mean)</code> to 3, and then later when
+your program concludes, Stata will copy what is in <code
+class="cmd">return()</code> into <code class="cmd">r()</code>.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+qui summarize mpg 
+</code></pre>
+
+<p>
+Run <code class="cmd">summarize</code> right now:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+return scalar sum = return(mean)+r(mean)
+</code></pre>
+
+<p>
+Just as with the first line, this line does not set <code
+class="cmd">r(sum)</code>.  It sets <code class="cmd">return(sum)</code>.  In
+<code class="cmd">return(sum)</code> it puts the sum of <code
+class="cmd">r(mean)</code>&#8212; which is what <code
+class="cmd">summarize</code> just returned&#8212;plus <code
+class="cmd">return(mean)</code>, the value stored in the first line.
+</p>
+
+<p>
+So, Stata executes those three lines, and then your program ends.  When your
+program ends, Stata does the following:
+</p>
+
+<ol>
+<li>Clears what is in <code class="cmd">r()</code></li>
+
+<li>Copies everything in <code class="cmd">return()</code> into <code
+class="cmd">r()</code></li>
+
+<li>Returns to the caller</li>
+</ol>
+
+<p>
+When you write your program, the rules for referring to <code
+class="cmd">return(<span class="repl">name</span>)</code> are the same as those
+for referring to <code class="cmd">r(<span class="repl">name</span>)</code>.
+</p>
+
+<p>
+As an example, let's go back to <code class="cmd">mytt</code>.  No, you do not
+have to look up the code.  Just recall that, as a result of the exercises at
+the end of <a href="nc152-l3.html">Lecture 3</a>, we made an immediate version
+of <code class="cmd">mytt</code> called <code class="cmd">mytti</code>.  In
+that program, we had the following subroutine:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     args n xbar s eqsign mu
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+Let us assume we wish to turn this subroutine into an r-class subroutine that
+returns in <code class="cmd">r(t)</code> the t-statistic and in <code
+class="cmd">r(df)</code> the degrees of freedom.  One way we could do that
+would be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i, rclass
+     args n xbar s eqsign mu
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+     di "t(" `n'-1 ") = " `t'
+     return scalar t = `t' 
+     return scalar df = `n' - 1
+end
+</code></pre>
+
+<p>
+Using the <code class="cmd">return()</code> function, however, our program can
+be a little shorter:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i, rclass
+     args n xbar s eqsign mu
+     return scalar t = (`xbar'-`mu')*sqrt(`n')/`s'
+     return scalar df = `n' - 1
+     di "t(" return(df) ") = " return(t)
+end
+</code></pre>
+
+<p>
+Note that in the last line I changed 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+di "t(" `n'-1 ") = " `t'
+</code></pre>
+
+<p>
+to read
+</p>
+
+<pre class="codeblock"><code class="cmd"> 
+di "t(" return(df) ") = " return(t)
+</code></pre>
+
+<p>
+and not 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+di "t(" r(df) ") = " r(t)
+</code></pre>
+
+<p>
+I had previously said to <code class="cmd">return</code> scalars t and df.
+That means they will be in <code class="cmd">r()</code> when my program
+ends&#8212;when my caller gets back control&#8212;but they are not there yet.
+While my program is still running, those two results are stored in <code
+class="cmd">return()</code>, the values to be returned.  <code
+class="cmd">return(df)</code> is the df value I previously set, and <code
+class="cmd">return(t)</code> is the t value.
+</p>
+
+<p>
+Do not let this confuse you:  while the <code class="cmd">tt_1i</code>
+subroutine is active, the return values are <code class="cmd">return(t)</code>
+and <code class="cmd">return(df)</code>.  Once <code class="cmd">tt_1i</code>
+completes, the returned values are <code class="cmd">r(t)</code> and <code
+class="cmd">r(df)</code>.  Thus, inside the <code class="cmd">tt_1i</code>
+program, I coded <code class="cmd">return(df)</code> and <code
+class="cmd">return(t)</code> to refer to the values I will be returning.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="other"></a>6. Other types of returned values:  s() and e()</h3>
+
+<p>
+Most Stata programs return values in <code class="cmd">r()</code>, but there
+are two other places Stata programs could return values:  <code
+class="cmd">s()</code> and <code class="cmd">e()</code>.
+</p>
+
+<p>
+First, understand that a Stata program exclusively returns values in <code
+class="cmd">r()</code>, <code class="cmd">s()</code>, or <code
+class="cmd">e()</code>; it never returns values in any combination of the two
+or all three.
+</p>
+
+<p>
+Programs that return values in <code class="cmd">s()</code> are said to be
+s-class, and programs that return values in <code class="cmd">e()</code> are
+said to be e-class.  e-class refers to the estimation class, and we are going
+to say a lot about estimation commands in this lecture, so let's put that one
+aside right now.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="sclass"></a>7. s-class returned values</h3>
+
+<p>
+s-class is a really strange little-class, but it is designed to handle an
+important problem.  Imagine that you are designing a program and that a user
+types something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. myprog 5 (means) mpg weight (medians) displ if weight&lt;r(mean)
+</code></pre>
+
+<p>
+I'm not going to explain what the <code>5</code> means, or the
+<code>(means)</code> or <code>(medians)</code>, because I do not know myself.
+I am just trying to show something that is a parsing nightmare.
+</p>
+
+<p>
+Whatever the general syntax of this command, you are going to have to write
+custom code to parse it, and if you follow my recommendation that good code uses
+lots of subroutines, that means you will write subroutines to assist in parsing
+this syntax.
+</p>
+
+<p>
+Look at the if condition I put on the end of the example: 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. myprog 5 (means) mpg weight (medians) displ if weight&lt;r(mean)
+                                              ^^^^^^^^^^^^^^^^^
+</code></pre>
+
+<p>
+The user wants to restrict the calculations of <code class="cmd">myprog</code>
+to the subsample for which weight&lt;<code class="cmd">r(mean)</code>, and
+we'll assume, she issued some command before the <code
+class="cmd">myprog</code> command that put into <code
+class="cmd">r(mean)</code> whatever it is she wanted.  
+</p>
+
+<p>
+Now, since this if condition is at the end of the line and since the command has
+nonstandard syntax, you are going to have to execute a fair amount of code
+before your program even identifies that <code class="cmd">if weight&lt;r(mean)</code> is the if
+condition.  Assuming you follow my recommendation and use lots of subroutines in
+that process, you are in for trouble.
+</p>
+
+<p>
+You are going to want your parsing subroutines to return things, so say that
+you return results in <code class="cmd">r()</code>.  By the time you actually
+find the <code class="cmd">if weight&lt;r(mean)</code> that the user
+typed&#8212;and evaluate it&#8212;you will have changed what is in <code
+class="cmd">r()</code>.  <code class="cmd">r(mean)</code> will not mean the
+same thing it did at the time the user typed it.
+</p>
+
+<p>
+To avoid that, you should have your parsing routines return results in
+<code class="cmd">s()</code>, not <code class="cmd">r()</code>.  To create an s-class subroutine,
+</p>
+
+<ol>
+<li>Add the <code class="cmd">sclass</code> option to the <code
+class="cmd">program</code> statement.</li>
+
+<li>Add <code class="cmd">sreturn</code> statements in the body of your program
+that return what you want to return.</li>
+</ol>
+
+<p>
+s-class differs from r-class in that it contains only macros, not scalars or
+matrices, neither of which you need for parsing.  Remember, numbers can be
+returned in macros.
+</p>
+
+<p>
+The caller consumes what you return by referring to <code class="cmd">`s(<span class="repl">name</span>)'</code>.
+If you need to refer to a previously sreturned result in the body of the
+program doing the sreturning, you refer to <code class="cmd">`sreturn(<span class="repl">name</span>)'</code>.
+</p>
+
+<p>
+As an example, let's imagine that I am writing a subroutine to help parse 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. myprog 5 (means) mpg weight (medians) displ if weight&lt;r(mean)
+</code></pre>
+
+<p>
+and that one of the routines is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+CheckPar "thing"
+</code></pre>
+
+<p>
+Subroutine CheckPar looks at <code>thing</code> and determines if it is
+<code>(means)</code> or <code>(medians)</code>.  If it is not either of these,
+it sreturns <code class="cmd">s(type)</code> containing 0.  If it is means, it
+sreturns 1, and if it is medians, it sreturns 2.  Of course, if there are
+problems, it produces an error:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program CheckPar, sclass
+     args token
+     if substr(`"`token'"',1,1) != "(" { 
+          sreturn local type 0
+     }
+     else if `"`token'"'=="(means)" {
+          sreturn local type 1
+     }
+     else if `"`token'"'=="(medians)" {
+          sreturn local type 2
+     }
+     else {
+          display as error `""`token'" invalid"'
+          exit 198
+     }
+end
+</code></pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="eclass"></a>8. e-class returned results </h3>
+<p>
+
+e-class refers to the estimation class.  As you might suspect, to create an
+e-class command,
+</p>
+
+<ol>
+<li>Add the <code class="cmd">eclass</code> option to the <code class="cmd">program</code> statement.</li>
+
+<li>Add <code class="cmd">ereturn</code> statements in the body of your program
+that return what you want to return.</li>
+</ol>
+
+<p>
+I will write a lot about e-class, but I just want you to first understand the
+mechanics of it.
+</p>
+
+<p>
+e-class really is different from r-class but more than anything in how it is
+used.  For instance, unlike r-class results, e-class results tend to stick
+around for a long time&#8212;until you run the next estimation command&#8212;but
+that is solely because that by convention only estimation commands save results
+in <code class="cmd">e()</code>.  If some program violated that convention, the statement would no
+longer be true.
+</p>
+
+<p>
+e-class appears to have a lot of structure to it&#8212;<code
+class="cmd">e(cmd)</code> is the name of the last estimation command, <code
+class="cmd">e(ll)</code> the log-likelihood value, <code
+class="cmd">e(b)</code> the coefficient vector, <code class="cmd">e(V)</code>
+the variance matrix, and so on&#8212;and some of that is due to convention.  We
+agree that when you write an estimation command, you will store the the name of
+your command in <code class="cmd">e(cmd)</code>&#8212;and some of that is due
+to the oddities of the-class itself.
+</p>
+
+<p>
+Actually, the only real oddity of the-class is that the first thing you post in
+<code class="cmd">e()</code> must be done with the <code class="cmd">ereturn
+post</code> command, and that command requires you to specify coefficient
+vector, variance matrix, and a variable that marks which observations were
+used.  After that, e-class works like r-class, except that you save other
+results using <code class="cmd">ereturn local</code> rather than <code
+class="cmd">return local</code>, <code class="cmd">ereturn scalar</code> rather
+than <code class="cmd">return scalar</code>, and <code class="cmd">ereturn
+matrix</code> rather than <code class="cmd">return matrix</code>.  What is
+stored is all convention, but there's a lot of convention.
+</p>
+
+<p>
+Before we get to writing an e-class command, let's begin by using results from
+e-class commands.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="writing"></a>9. Writing postestimation commands</h3>
+
+<p>
+After you estimate model parameters, you can use a postestimation command with
+an estimation command to explore the estimates.  This means that you will need
+to access information and results about the estimated model, and I want to show
+you how to do that.
+</p>
+
+<p>
+We wrote our first postestimation command in <a
+href="nc152-l3.html#exer4">Exercise 4</a> of <a href="nc152-l3.html">Lecture
+3</a>.  <code class="cmd">predexp</code> created newvar containing the
+predictions of the mean y after a regression of ln(y).  The code for this was 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program predexp
+     syntax newvarname [if] [in]
+     tempvar new
+
+     quietly { 
+          local s2 = e(rmse)^2
+          tempvar pred
+          predict double `pred' `if' `in'
+          gen `typlist'  `new' = exp(`pred')*exp(`s2'/2)
+          rename `new' `varlist'
+     }
+end
+</code></pre>
+
+<p> 
+The purpose of this exercise was twofold.  Related to the last lecture, you had
+to deal with the programming complication of creating a new, permanent
+variable.  Related to this lecture, the exercises showed that Stata estimation
+commands save results&#8212;regress saved what we needed in <code class="cmd">e(rmse)</code>&#8212;and that you can discover where results are stored by looking at the "Saved
+results" section in 
+<!-- change manual --> <span class="manual_entry">[R] regress</span> 
+(or by typing <code class="cmd">ereturn list</code>).
+</p>
+
+<p>
+Let me tell you the few things you can absolutely depend on an estimation 
+command to store:
+</p>
+
+<ul>
+<li> macro <code class="cmd">e(cmd)</code> contains the name of the estimation
+command.</li>
+
+<li>matrices <code class="cmd">e(b)</code> and <code class="cmd">e(V)</code>
+contain the entire coefficient vector (stored as a row) and the
+variance&#8211;covariance matrix of the estimators.  Also, you can use _b[<span
+class="repl">name</span>] and _se[<span class="repl">name</span>] to access the
+coefficients and their standard errors.  For instance, in some program you
+might code <code class="cmd">local t = _b[mpg]/_se[mpg]</code>.  These two
+elements of Stata's language just reach inside <code class="cmd">e(b)</code>
+and <code class="cmd">e(V)</code>.</li>
+
+<li>function <code class="cmd">e(sample)</code> contains 1 if the observation
+was used in estimation and 0 otherwise.</li>
+</ul>
+
+<p>
+Let me show you:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. regress mpg weight displ </code>
+output omitted
+
+<code class="cmd">. display "`e(cmd)'"</code>
+regress
+
+<code class="cmd">. mat list e(b)</code>
+
+e(b)[1,3]
+        weight       displ       _cons
+y1  -.00656711   .00528078   40.084522
+
+<code class="cmd">. mat list e(V)</code>
+
+symmetric e(V)[3,3]
+            weight       displ       _cons
+weight   1.360e-06
+ displ   -.0000103   .00009741
+ _cons  -.00207455   .01188356   4.0808455
+
+<code class="cmd">. display _b[displ] "  " _se[weight]</code>
+.00528078  .00116624
+
+<code class="cmd">. count if e(sample)</code>
+74
+</pre>
+
+<p>
+In addition to <code class="cmd">e(cmd)</code>, <code class="cmd">e(b)</code>, <code class="cmd">e(V)</code>, and <code class="cmd">e(sample)</code>,
+estimation commands may store more information such as macros, scalars, or
+matrices.  For instance, if you look under "Saved results" in 
+<!-- change manual --><span class="manual_entry">[R] regress</span>, 
+you will see that <code class="cmd">regress</code> saves the name of the
+dependent variable in macro <code class="cmd">e(depvar)</code>.  Most
+estimation commands do that, but it is not guaranteed.
+</p>
+
+<p>
+A postestimation command is, therefore, a command that uses any of the above
+pieces.  There are lots of postestimation commands in Stata, and it is worth
+reviewing just a few of them and how they were written.
+</p>
+
+<ul>
+<li><code class="cmd">test</code><br>
+<p>
+This command tests linear constraints about the coefficients, the required
+information being the coefficients and VCE matrix.  <code class="cmd">test</code> accesses
+<code class="cmd">e(b)</code> and <code class="cmd">e(V)</code>.
+</p>
+</li>
+
+<li><code class="cmd">predict</code><br>
+<p> 
+This command calculates predicted values, residuals, and the like.  Obviously,
+it accesses <code class="cmd">e(b)</code> and, for some calculations, <code
+class="cmd">e(V)</code>.  In addition, because <code class="cmd">predict</code>
+will do special things for special estimation commands (such as calculate
+probabilities in the case of <code class="cmd">logistic</code>), it must look
+at <code class="cmd">`e(cmd)'</code>.
+</p>
+</li>
+<li><code class="cmd">estat gof</code><br>
+<p>
+This command performs a goodness-of-fit test after <code
+class="cmd">logit</code> or <code class="cmd">logistic</code>.
+</p>
+</li>
+
+</ul>
+
+<p>
+Writing your own postestimation command is just a matter of knowing what you
+are going to program and opening the manual to "Stored results" of the
+estimation command to determine where the ingredients of the calculation are
+stored.
+</p>
+
+<p>
+It is vitally important that, if your postestimation command is for use after
+the XYZ command, you ensure that it works only after the XYZ command.  You do
+not want the user accidentally using your command after ABC, mistakenly
+thinking that their previous model is XYZ and obtaining results that could be
+misinterpreted.  It would, for instance, cause problems if <code
+class="cmd">estat gof</code>, a command for use after <code
+class="cmd">logit</code> or <code class="cmd">logistic</code>, actually did
+something after <code class="cmd">regress</code>.  In fact, it does not:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. regress mpg weight displ </code>
+output omitted
+
+<code class="cmd">. estat gof</code>
+invalid subcommand gof
+r(321);
+</pre>
+
+<p>
+That is what a postestimation command is supposed to do when misused.  The
+<code>invalid subcommand gof</code> message does not mean there are no estimates stored;
+it means only that the stored estimates are not appropriate for this command.
+How does <code class="cmd">estat</code> do this?  Each estimation command has
+an <code class="cmd">ereturn</code> value <code
+class="cmd">e(estat_cmd)</code>.  This macro contains the name of the <code
+class="cmd">estat</code> handler function.  An <code class="cmd">estat</code>
+<span class="repl">handler</span> function defines the command-specific actions
+that <code class="cmd">estat</code> is to perform after an estimation command.
+For example, suppose we created an estimation command <code
+class="cmd">mylogit</code> that returned the ereturn value <code>mylogit_estat
+</code> in the macro <code class="cmd">e(estat_cmd)</code>.  </p>
+
+<pre class="codeblock"><code class="cmd">
+program define mylogit, eclass
+	logit `0'
+	ereturn local cmd "mylogit"
+	ereturn local estat_cmd "mylogit_estat"
+end
+</code></pre>
+
+<p>
+Next, we would create our <code class="cmd">estat</code> handler function
+mylogit_estat.ado which would look something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+*! version 1.0.0  11 Jun 2007
+program mylogit_estat, rclass
+	version 10
+
+	if "`e(cmd)'" != "mylogit" {
+		error 301
+	}
+
+	gettoken key rest : 0, parse(", ")       
+ 
+	if `"`key'"' == "gof" {
+		gof `rest'
+	}
+	else {
+		estat_default `0'
+	}
+
+end
+
+program gof, rclass
+	display "here I am"
+end
+</code></pre>
+
+<p>
+Note: We strongly recommend naming the handler <span
+class="repl">cmd</span>_estat, where <span class="repl">cmd</span> is the name
+of the estimation command.  Also, we used the <code class="cmd">gettoken</code>
+command in mylogit_estat to remove the 'gof' from what was passed to
+mylogit_estat and put the rest of the command line in the macro 'rest'.  We'll
+explain more about <code class="cmd">gettoken</code> in lecture 5.
+</p>
+
+<p>
+Now let's try our new postestimation command.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. sysuse auto, clear</code>
+(1978 Automobile Data)
+
+<code class="cmd">. mylogit for mpg</code>
+
+Iteration 0:   log likelihood =  -45.03321
+Iteration 1:   log likelihood = -39.380959
+Iteration 2:   log likelihood = -39.288802
+Iteration 3:   log likelihood =  -39.28864
+
+Logistic regression                               Number of obs   =         74
+                                                  LR chi2(1)      =      11.49
+                                                  Prob &gt; chi2     =     0.0007
+Log likelihood =  -39.28864                       Pseudo R2       =     0.1276
+
+------------------------------------------------------------------------------
+     foreign |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+         mpg |   .1597621   .0525874     3.04   0.002     .0566927    .2628316
+       _cons |  -4.378866   1.211289    -3.62   0.000    -6.752949   -2.004783
+------------------------------------------------------------------------------
+
+<code class="cmd">. ereturn list</code>
+
+scalars:
+                 e(N) =  74
+              e(ll_0) =  -45.03320955699139
+                e(ll) =  -39.2886400826789
+              e(df_m) =  1
+              e(chi2) =  11.489138948625
+              e(r2_p) =  .1275629592210724
+             e(N_cdf) =  0
+             e(N_cds) =  0
+
+macros:
+         e(estat_cmd) : "mylogit_estat"
+               e(cmd) : "mylogit"
+             e(title) : "Logistic regression"
+            e(depvar) : "foreign"
+          e(crittype) : "log likelihood"
+           e(predict) : "logit_p"
+        e(properties) : "b V"
+          e(chi2type) : "LR"
+
+matrices:
+                 e(b) :  1 x 2
+                 e(V) :  2 x 2
+             e(rules) :  1 x 4
+
+functions:
+            e(sample)   
+
+<code class="cmd">. estat gof</code>
+here I am
+</pre>
+
+<p>
+In the above example <code class="cmd">estat</code> knew which handler to call
+because of the <code class="cmd">ereturn</code> value <code
+class="cmd">e(estat_cmd).  </code>The <code class="cmd">estat</code> <span
+class="repl">handler</span> function gets called from the <code
+class="cmd">estat</code> command using the following code.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+
+if `"`e(estat_cmd)'"' != "" {
+	`e(estat_cmd)' `0'
+	return add
+	exit
+}
+</code></pre>
+
+<p>
+In our <code class="cmd">estat</code> <span class="repl">handler</span> we
+check to see if the first token <code class="cmd">`1'</code> is equal to "gof" 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if `"`1'"' == "gof" {
+	gof `0'
+}
+</code></pre>
+
+<p>
+and, if not, use the default <code class="cmd">estat</code> command. 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+else {
+	estat_default `0'
+}
+</code></pre>
+
+<p>
+Also, at the beginning of your <code class="cmd">estat</code> <span
+class="repl">handler</span> function you should have lines that read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`e(cmd)'" != "mylogit" {
+    error 301
+}
+</code></pre>
+
+<p>
+Every estimation command sets its identity in <code
+class="cmd">`e(cmd)'</code>, and all you have to do is verify that the macro
+contains what you expect.  (See <a href="#exer3">Exercise 3</a>.)
+</p>
+
+<p>
+Important:  postestimation commands are not e-class.  Only the estimation
+commands themselves are e-class.  A postestimation command is probably r-class.
+</p>
+
+<p>
+Writing a postestimation command requires no special skills&#8212;all you need
+to know is where the postestimation results are.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="an"></a>10. Writing an estimation (e-class) command</h3>
+
+<p>
+Writing an estimation command, you might suspect, is more of an undertaking.
+After all, as you just learned, all sorts of things have to be cleared and
+stored, and you are probably worried that just the housekeeping details will be
+a nightmare.
+</p>
+
+<p>
+As it turns out, that is not true.  Writing an estimation command can be an
+undertaking but only because of the inherent complication of the estimation
+formula itself.  The housekeeping details almost take care of themselves once
+you understand their logic.
+</p>
+
+<p>
+Below, we are going to explore two types of estimation commands:
+</p>
+
+<ol>
+     <li>Estimation commands from first principles</li>
+     <li>Estimation commands through maximum likelihood</li>
+</ol>
+
+<p>
+All estimation commands have the same outline:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZ, eclass
+     if !replay() { 
+          /* estimation logic */
+          ereturn local cmd "XYZ"
+     }
+     if "`e(cmd)'" != "XYZ"{
+          error 301
+     }
+     /* logic to display results */
+end
+</code></pre>
+
+<p>
+The <code class="cmd">replay()</code> function is new, but let's pass over
+that.  <code class="cmd">replay()</code> returns true if the user types nothing
+after XYZ and false otherwise. I'll explain the details later.  Anyway, in the
+outline I use <code class="cmd">!replay()</code>, so the estimation logic is
+executed if the user types something after XYZ and skipped otherwise.
+</p>
+
+<p>
+There are lots of variations on this outline, but they all provide the ability
+to redisplay results.
+</p>
+
+<ol>
+<li>If the user types something following the estimation command&#8212;XYZ in
+my outline&#8212;the appropriate estimates are calculated, the macro <code
+class="cmd">e(cmd)</code> is set to contain the name of the estimation command,
+and results are then displayed.</li>
+
+<li>If the user types nothing following the estimation command, the contents of
+<code class="cmd">e(cmd)</code> are checked to ensure they contain the name of
+the estimation command, and results are (re)displayed.</li>
+</ol>
+
+<p>
+Setting and checking <code class="cmd">e(cmd)</code> ensures that our command
+redisplays results only when it should&#8212;that is, when the estimation
+results are produced by our command.  All estimation commands follow the <code
+class="cmd">e(cmd)</code> convention.  Consider the following session:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. XYZ price mpg weight 
+. XYZ
+. logistic foreign mpg weight 
+. XYZ
+</code></pre>
+
+<p>
+<code class="cmd">XYZ price mpg weight</code> executes our estimation command,
+which produces results and displays them.  Along the way, it sets <code
+class="cmd">e(cmd)</code> to contain <code>XYZ</code>.  Thus the subsequent 
+<code class="cmd">XYZ</code> finds that <code class="cmd">e(cmd)</code> contains
+<code>XYZ</code> and displays the results again.
+</p>
+
+<p>
+<code class="cmd">logistic foreign mpg weight</code> executes the logistic
+regression estimation command, which produces results and displays them.  Along
+the way, <code class="cmd">logistic</code> sets <code class="cmd">e(cmd)</code>
+to contain "logistic".  The <code class="cmd">XYZ</code> following <code
+class="cmd">logistic</code> thus finds that <code class="cmd">e(cmd)</code>
+does not contain <code>XYZ</code> and so issues the <code>last estimates not found</code> error.
+</p>
+
+<p>
+As long as every estimation command follows the <code class="cmd">e(cmd)</code>
+convention, all works well.  In fact, things are even safer than that because
+Stata itself clears everything in <code class="cmd">e()</code> when estimation
+results are saved.
+</p>
+
+<p>
+I said above that lots of variations on the code outline are possible, and one
+variation I prefer looks like this:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZ
+     if replay() {
+          if "`e(cmd)'" != "XYZ" {
+               error 301
+          }
+     }
+     else {
+          /* estimation logic */
+          ereturn local cmd "XYZ"
+     }
+     /* logic to display results */
+end
+</code></pre>
+
+<p>
+I have reordered statements physically, but if you go through them logically,
+you will find the result is the same.  (There is one minor difference, the
+contents of <code class="cmd">e(cmd)</code> are no longer checked when we enter
+the play back logic from the estimation logic.)
+</p>
+
+<p>
+I prefer this version of the outline because it is a little (and only a little)
+easier to parse options.
+</p>
+
+<p>
+It is not really true that anything following the name of an estimation command
+is a request for estimation.  All Stata estimation commands allow the <code
+class="cmd">level(#)</code> option to specify the width of the confidence
+interval for the coefficients, and you can specify that when you playback
+results or when you estimate them.  Thus,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. XYZ, level(90) 
+</code></pre>
+
+<p>
+is not a request that results be estimated but a request that results be
+redisplayed with 90% confidence intervals.  Our estimation
+program should be able to handle this.
+</p>
+
+<p>
+Here is how I add the <code class="cmd">level(#)</code> option to the outline:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program XYZ</code>
+     <code class="cmd">local options "Level(cilevel)" </code>           &lt;- new
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">if "`e(cmd)'" != "XYZ" {</code>
+               <code class="cmd">error 301</code>
+          <code class="cmd">}</code>
+          <code class="cmd">syntax [, `options'] </code>                &lt;- new
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">syntax ... [, ... `options'] </code>     
+          ...
+          /* estimation logic */
+          <code class="cmd">ereturn local cmd "XYZ"</code>
+     <code class="cmd"> }</code>
+     /* logic to display results */
+<code class="cmd">end</code>
+
+</pre>
+
+<p>
+Now let me explain the <code class="cmd">replay()</code> function.  <code
+class="cmd">replay()</code> looks at <code class="cmd">`0'</code>&#8212;what
+the user types following the command.  If <code class="cmd">`0'</code> is empty
+(meaning the user typed nothing) or starts with a comma (meaning the user typed
+just options), <code class="cmd">replay()</code> returns true, and otherwise it
+returns false.  This is equivalent to coding
+</p>
+
+<pre class="codeblock"><code class="cmd">
+     if replay() {
+</code></pre>
+
+<p>
+We could code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+          if (`"`0'"'=="" | substr(`"`0'"',1,1)==",") {
+</code></pre>
+
+<p>
+but coding <code class="cmd">if replay()</code> is easier.  Before going deeper
+into this code, let me explain the problems the new lines in the code were
+added to address:
+</p>
+
+<ol>
+<li>A user can specify a <code class="cmd">level(#)</code> option when results are redisplayed.  The
+user could type <code class="cmd">XYZ</code> or <code class="cmd">XYZ,
+level(90)</code>.</li>
+
+<li>A user can specify a <code class="cmd">level(#)</code> option when results are estimated.  The user
+could type <code class="cmd">XYZ mpg weight, level(90)</code>.</li>
+
+<li>There are other options, such as those allowed by the <code
+class="cmd">regress</code> command, that a user can specify only at the time of
+estimation.  The user can type <code class="cmd">regress mpg weight,
+nocons</code> but not <code class="cmd">regress, nocons</code>.  The constant
+cannot be removed after estimation.  There may be similar options for our XYZ
+command.</li>
+</ol>
+
+<p>
+Said differently,
+</p>
+
+<ol>
+<li>  Some options can be specified on estimation or playback, e.g.,
+<code class="cmd">level(#)</code>.</li>
+
+<li>  Some estimation&#8211;time options can be specified only at estimation
+time, e.g., <code class="cmd">nocons</code>.</li>
+</ol>
+
+<p>
+There are no options that can be specified at playback but not estimation
+because, by definition, playback is a subset of estimation.
+</p>
+
+<p>
+To understand how I parsed this, look at the two new features at the top of
+the outline:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program XYZ</code>
+     <code class="cmd">local options "Level(cilevel)" </code>         &lt;- new
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">...</code>
+          <code class="cmd">syntax [, `options']</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">syntax ... [, ... `options']</code>       &lt;- new
+          <code class="cmd">...</code>
+     <code class="cmd">}</code>
+     <code class="cmd">...</code>
+<code class="cmd">end</code>
+</pre>
+
+<p>
+I hope the <code class="cmd">cilevel</code> is not confusing you.  If it is, pretend that the
+outline read
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program XYZ</code>
+     <code class="cmd">local options "Level(integer 95)"</code>                  &lt;- new
+
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">...</code>
+          <code class="cmd">syntax [, `options']</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">syntax ... [, ... `options'] </code>            &lt;- new
+          <code class="cmd">...</code>
+     <code class="cmd">}</code>
+     <code class="cmd">...</code>
+<code class="cmd">end</code>
+</pre>
+
+<p>
+The <code class="cmd">cilevel</code> option descriptor requires the user to
+specify a valid level for a confidence interval.  If the user does not specify
+this option, the default level is obtained from <code
+class="cmd">c(level)</code> and stored in the macro `level' The c-class object
+<code class="cmd">c(level)</code> probably contains 95 (c-class objects are
+where Stata stores system parameters and constants).  It contains the default
+significance level, which is 95, unless the user resets it using the <code
+class="cmd">set level</code> command.  I have never yet met a user who did.
+</p>
+
+<p>
+It is important that in local macro options I put the options to be allowed both
+at playback and estimation time.  In this example, we must first learn how to
+define estimation results.  I'm not talking about the complexities of the
+estimation itself; I'm talking about what we do with the results once we have
+them.
+</p>
+
+<p>
+This way, if I want to add a new playback option, I can add it at one place in
+the code (the <code class="cmd">local options</code> statement), and it will
+affect both <code class="cmd">syntax</code> statements.
+</p>
+
+<p>
+For instance, <code class="cmd">cox</code> allows an <code
+class="cmd">hr</code> option to display results as hazard ratios.  It does not
+affect estimation; it just affects how results are displayed.  If I wanted to
+add this option to my program, I would change
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local options "Level(cilevel)"
+</code></pre>
+
+<p>
+to
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local options "Level(cilevel) HR"
+</code></pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name = "alternative"></a>11. An alternative estimation-command
+outline</h3>
+
+<p>
+As I said, there are multiple ways to express the same logic in a program.
+Here is yet another outline that is logically equivalent but perhaps clearer:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program XYZ</code>
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">Playback `0'</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else    Estimate `0'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program Estimate</code>
+     <code class="cmd">syntax ... [, ...]</code>
+     /* estimation logic goes here */
+     <code class="cmd">ereturn local cmd "XYZ"</code>
+     <code class="cmd">Playback, level(`level')</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program Playback</code>
+     <code class="cmd">syntax [, ...]</code>
+     <code class="cmd">if "`e(cmd)'" != "XYZ" {</code>
+          <code class="cmd">error 301</code>
+     <code class="cmd">}</code>
+     /* logic to display results goes here */
+<code class="cmd">end</code>
+</pre>
+
+<p>
+This formulation of the outline is neither better nor worse than the previous
+one; I have used all three in my own work, and others to boot.  With this
+outline, options common to estimation and playback must be coded
+twice&#8212;which is a disadvantage&#8212;but in return, the separation of
+estimation and playback is made clearer.
+</p>
+
+<p>
+Now that we have an outline for an estimation command, let's fill one in.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name = "estimation"></a>12. Writing estimation commands from first principles</h3>
+
+<p>
+First, we must learn how to define estimation results.  I'm not talking about
+the complexities of the estimation itself but about what we do with the results
+once we have them.
+</p>
+
+<p>
+It turns out that storing the initial results is easy and that, once posted,
+results can be easily displayed, too.
+</p>
+
+<p>
+So, let's put aside calculating the estimates and pretend we already
+have them.  What would we do with them?
+</p>
+
+<p>
+Pretend that somehow, for some estimation problem, we came up with the
+coefficient vector bhat=(&minus;, &minus;.1685, 3.907, 13.70) and corresponding
+var(b) (synonyms: variance&#8211;covariance matrix; VCE):
+</p>
+
+<pre class="codeblock">
+.0084   .0706  -.3840
+.0706   1.023  -4.321
+-.3840  -4.321   20.41
+</pre>
+
+<p>
+To show you what we would do if we had them, let me first define the matrices
+I've just displayed:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mat bhat = (-.1685, -3.907, 13.70)
+
+. mat vce  = ( .0084,  .0706, -.3840  \
+               .0706,  1.023, -4.321  \
+              -.3840, -4.321,  20.41)
+</code></pre>
+
+<p>
+You can read about Stata's matrix commands for yourself (see 
+<!-- change manual --><span class="manual_entry">[P] matrix</span> and  
+<!-- change manual --><span class="manual_entry">[M] Mata</span>).
+I have just copied the numbers into Stata.  In an estimation command, these
+matrices would presumably have been produced by formula.
+</p>
+
+<p>
+I will tell you now that these results correspond to coefficients on the
+variables mpg, weight, and _cons.  I am going to label the rows and columns of
+my vector and matrix with these names:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mat colnames bhat = mpg weight _cons
+
+. mat rownames vce  = mpg weight _cons
+
+. mat colnames vce  = mpg weight _cons
+</code></pre>
+
+<p>
+All I have done so far is to make pretty Stata matrices:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mat list bhat</code>
+
+bhat[1,3]
+       mpg  weight   _cons
+r1  -.1685  -3.907    13.7
+
+
+<code class="cmd">. mat list vce</code>
+
+symmetric vce[3,3]
+           mpg  weight   _cons
+   mpg   .0084
+weight   .0706   1.023
+ _cons   -.384  -4.321   20.41
+</pre>
+
+<p>
+So, I now have pretty matrices.  Earlier we asked, "So, let's put aside
+calculating the estimates and pretend we already have them.  What would we do
+with them?" Okay, we have matrices bhat and vce.  What do we do with them?
+Given that you have a matrix named bhat that contains coefficients, and matrix
+vhat containing the corresponding VCE, you type
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. ereturn post bhat vce
+</code></pre>
+
+<p>
+to post them as official estimation results.  That one little command, <code
+class="cmd">ereturn post bhat vce</code>, performs a miracle.  After giving it,
+you will find that the matrices bhat and vce are gone:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mat list bhat</code>
+bhat not found
+r(111);
+
+<code class="cmd">. mat list vce</code>
+vce not found
+r(111);
+</pre>
+
+<p>
+Stata ate them.  Those matrices are now official estimation results of Stata.
+Stata has another command to display official estimation results:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ereturn display</code>
+
+-----------------------------------------------------------------------------
+         |     Coef.   Std. Err.       z     P&gt;|z|       [95% Conf. Interval]
+---------+-------------------------------------------------------------------
+     mpg |    -.1685   .0916515     -1.838   0.066      -.3481337    .0111337
+  weight |    -3.907   1.011435     -3.863   0.000      -5.889375   -1.924625
+   _cons |      13.7   4.517743      3.032   0.002       4.845387    22.55461
+-----------------------------------------------------------------------------
+</pre>
+
+<p>
+Note the nicely formatted output.  All I did to produce it was type <code
+class="cmd">ereturn display</code>.  It has test statistics, confidence
+intervals, everything.
+</p>
+
+<p>
+If you explore Stata's postestimation commands, you will find that the ones
+that ought to work do work.  For instance,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. test 10*mpg = weight</code>
+
+( 1)  10.0 mpg - weight = 0.0
+
+           chi2(  1) =   10.95
+         Prob &gt; chi2 =    0.0009
+
+</pre>
+
+<p>
+Keep playing, and you will discover that <code class="cmd">predict</code> and
+other commands work and that all the standard features such as <code
+class="cmd">_b[<span class="repl">name</span>]</code> and <code
+class="cmd">_se[<span class="repl">name</span>]</code> work, too.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. display _b[weight]</code>
+-3.907
+</pre>
+
+<p>
+Remember when Stata ate our b and v matrices?  That's okay; if we need them
+back, we can type
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mat bhat = e(b)</code>
+
+<code class="cmd">. mat vce = e(V)</code>
+
+<code class="cmd">. mat list bhat</code>
+bhat[1,3]
+       mpg  weight   _cons
+y1  -.1685  -3.907    13.7
+</pre>
+
+<p>
+So how do you create an estimator?  Produce the coefficient vector and VCE,
+and then <code class="cmd">ereturn post</code> them.
+</p>
+
+<p>
+So, let's write an estimation command.  Let's pretend that Stata had no <code
+class="cmd">regress</code> command and that we needed to write linear
+regression.  The matrix formulas are
+</p>
+
+<pre class="codeblock">
+                       -1
+            b  =  (X'X)  X'y
+
+                   2     -1
+       var(b)  =  s (X'X)
+
+            2
+            s  =  (y'y - b'X'y)/(n-k)
+            n  =  number of observations
+            k  =  number of independent variables
+</pre>
+
+<p>
+Here is the complete Stata code:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE:<!--change version # --><a href="../../courses/nc152-10/lec4/linreg.ado">linreg.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout">
+<code class="cmd">program linreg, eclass</code>
+     <code class="cmd">local options "Level(cilevel)"</code>
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">if "`e(cmd)'" != "linreg" {</code>
+               <code class="cmd">error 301</code>
+          <code class="cmd">}</code>
+          <code class="cmd">syntax [, `options']</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">syntax varlist(min=2) [if] [in] [, `options']</code>
+          <code class="cmd">marksample touse</code>
+          <code class="cmd">tempname YXX XX Xy yy XXinv b V</code>
+          <code class="cmd">mat accum `YXX' = `varlist' if `touse'</code>   /* (y X)'(y X)   */
+          <code class="cmd">local n = r(N)</code>
+          <code class="cmd">matrix `XX' = `YXX'[2...,2...]</code>           /* extract X'X   */
+          <code class="cmd">matrix `Xy' = `YXX'[2...,1]</code>              /* extract X'y   */
+          <code class="cmd">scalar `yy' = `YXX'[1,1]</code>
+          <code class="cmd">local k     = rowsof(`XX')  </code>             /* define k      */
+          <code class="cmd">mat `XXinv' = invsym(`XX') </code>              /* X'X inverse   */
+          <code class="cmd">matrix `b'  = (`XXinv' * `Xy')'</code>          /* coefs, row    */
+
+          <code class="cmd">matrix `V'  = (`yy'-`b'*`Xy')/(`n'-`k') * `XXinv'</code>
+          <code class="cmd">local df    = `n'-`k'</code>
+
+          <code class="cmd">ereturn post `b' `V', dof(`df') obs(`n') esample(`touse')</code>
+          <code class="cmd">ereturn local cmd "linreg"</code>
+     <code class="cmd">}</code>
+     <code class="cmd">display  /* a blank line */</code>
+     <code class="cmd">ereturn display , level(`level')</code>
+<code class="cmd">end</code>
+      </pre></td> 
+   </tr> 
+</table>
+
+
+<p>
+Here is an example of <code class="cmd">linreg</code> in use:
+</p>
+
+<pre class="codeblock">
+<code class="cmd"> . linreg price weight mpg</code>
+ (obs=74)
+
+-----------------------------------------------------------------------------
+        |      Coef.   Std. Err.       t     P&gt;|t|       [95% Conf. Interval]
+--------+--------------------------------------------------------------------
+ weight |   1.746559   .6413538      2.723   0.008       .4677361    3.025382
+    mpg |  -49.51222   86.15604     -0.575   0.567      -221.3025     122.278
+  _cons |   1946.069    3597.05      0.541   0.590      -5226.244    9118.382
+-----------------------------------------------------------------------------
+
+</pre>
+
+<p>
+If you type <code class="cmd">linreg</code> without arguments, it will
+redisplay results.  <code class="cmd">linreg</code> is a full-fledged Stata
+estimation command.
+</p>
+
+<p>
+Here are my comments on the code:
+</p>
+
+<ol>
+<li>You can learn about Stata's matrix commands by reading 
+<!-- change manual --><span class="manual_entry">[P] matrix</span>.  
+You may also want to read about Stata's matrix programming language Mata in the
+<!-- change manual --><span class="manual_entry">[M] Mata</span> manual.
+</li>
+
+<li>
+<p>
+<code class="cmd">matrix accum</code> forms cross-product matrices, Z'Z.  I passed <code class="cmd">matrix
+accum</code> the entire varlist, which is to say, the dependent variable followed
+by the list of independent variables.  Think of this as Z=(y X).  Thus, Z'Z = (y
+X)'(y X), or the matrix
+</p>
+
+<pre class="codeblock">
+y'y   y'X
+X'y   X'X
+</pre>
+</li>
+
+<li>
+<p>
+You will want to read about <code class="cmd">ereturn post</code>.  I used the
+<code class="cmd">esample()</code> option to specify which observations were
+involved in the estimation.  This sets up the <code
+class="cmd">e(sample)</code> function.  A common error in first drafts of an
+estimation command program is failing to set <code
+class="cmd">esample()</code>.  If you do not set <code
+class="cmd">esample()</code>, statements like
+</p>
+
+<pre class="codeblock">
+<code class="cmd">summarize price if e(sample)</code>
+</pre>
+
+<p>
+will not work as expected (for example, it will produce summary results using
+zero observations).  I also used the <code class="cmd">obs()</code> option to
+specify the number of observations and the <code class="cmd">dof()</code>
+option to specify the residual degrees of freedom.  The result of the <code
+class="cmd">dof()</code> option is that <code class="cmd">ereturn
+display</code> produced t- rather than Z-statistics.
+</p>
+</li>
+
+<li>
+<p>
+This program is not perfect; in particular, it does not handle dropped
+variables correctly because it says
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local k     = rowsof(`XX')</code>
+</pre>
+
+<p>
+Some of the rows of <code class="cmd">`XX'</code> might be "empty"; see <a href="#exer4">Exercise
+4</a>.
+</p>
+</li>
+</ol>
+
+<p>
+Do not forget the ordering of the statements:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+ereturn post `b' `V', dof(`df') obs(`n') esample(`touse')
+ereturn local cmd "linreg"
+</code></pre>
+
+<p>
+It would be wrong&#8212;and it would not work&#8212;if we reversed the order:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+ereturn local cmd "linreg"
+ereturn post `b' `V', dof(`df') obs(`n') esample(`touse')
+</code></pre>
+
+<p>
+When you <code class="cmd">ereturn post</code>, Stata clears all previous
+estimation results, deleting everything in <code class="cmd">e()</code>.  The
+reversed-order lines would set <code class="cmd">e(cmd)</code>, but the <code
+class="cmd">ereturn post</code> would then clear <code
+class="cmd">e(cmd)</code> so that it contained nothing.  
+</p>
+
+<p>
+The right order is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+ereturn post `b' `V', dof(`df') obs(`n') esample(`touse')
+ereturn local cmd "linreg"
+</code></pre>
+
+<p>
+Also, when you define <code class="cmd">e(cmd)</code>, estimation results are
+considered official, so if you set other things in <code
+class="cmd">e()</code>, set them after the <code class="cmd">ereturn
+post</code> and before the <code class="cmd">ereturn local cmd</code>.  If our
+program wanted to retain the value of s2 for later display or for use by a
+postestimation command, the correct way to do that would be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+ereturn post `b' `V', dof(`df') obs(`n') esample(`touse')
+ereturn scalar s2 = ...
+ereturn local cmd "linreg"
+</code></pre>
+
+<p>
+In other words
+</p>
+
+<ol>
+<li> You <code class="cmd">ereturn post</code>.</li>
+<li> You set <code class="cmd">e()</code> to things other than <code class="cmd">e(cmd)</code>.</li>
+<li> You set <code class="cmd">e(cmd)</code>.</li>
+</ol>
+
+<p>
+This way, if the user presses <span class="key">Break</span> between 1 and 3, Stata knows the
+results are incomplete because <code class="cmd">e(cmd)</code> has not been set.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name = "commands"></a>13. Writing estimation commands via maximum likelihood</h3>
+
+<p>
+You now know how to post b and V, the coefficients, and VCE, as official
+estimation results, and that means you now know enough to write maximum-
+likelihood estimation commands, although it would be an undertaking if you did
+not use Stata's <code class="cmd">ml</code> to perform the maximization.  No
+matter how you produce b and V, you could write the code necessary to maximize
+a likelihood function.  You will find it easier, however, to master Stata's
+<code class="cmd">ml</code>.
+</p>
+
+<p>
+The estimation command outline for a maximum likelihood estimator is no
+different from that of any other estimation command:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program XYZ</code>
+     <code class="cmd">local options "Level(cilevel)"</code>
+     <code class="cmd">if replay() {</code>
+          <code class="cmd">if "`e(cmd)'" != "XYZ" {</code>
+               <code class="cmd">error 301</code>
+          <code class="cmd">}</code>
+          <code class="cmd">syntax [, `options']</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {</code>
+          <code class="cmd">syntax ... [, ... `options']</code>
+          /* estimation logic */
+          <code class="cmd">ereturn local cmd "XYZ"</code>
+     <code class="cmd">}</code>
+     /* logic to display results */
+<code class="cmd">end</code>
+</pre>
+
+<p>
+For instance, pretend that Stata did not have a logistic regression command.
+Here is a perfectly serviceable alternative:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE:<!--change version # --><a href="../../courses/nc152-10/lec4/logisreg.ado">logisreg.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program logisreg, eclass
+     local options "Level(cilevel)"
+     if replay() {
+          if "`e(cmd)'" != "logisreg" {
+               error 301
+          }
+          syntax [, `options']
+     }
+     else {
+          syntax varlist [if] [in] [, `options']
+          marksample touse
+
+          tokenize `varlist'
+          local lhs "`1'"
+          mac shift
+          local rhs "`*'"
+
+          ml model lf logis_ll (`lhs'=`rhs') if `touse', ///
+          max title("my logistic")
+          ereturn local cmd "logisreg"
+     }
+     ml display, level(`level')
+end
+</code></pre></td> 
+</tr> 
+</table>
+
+<p></p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE:<!--change version # --><a href="../../courses/nc152-10/lec4/logis_ll.ado">logis_ll.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program logis_ll
+     args lnf theta
+     quietly replace `lnf' = cond($ML_y1,     ///
+     -ln(1+exp(-`theta')),            ///
+     -(`theta')-ln(1+exp(-`theta')) )
+end      
+</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+I have comments to make on these programs, but first, let me show you that
+they work:
+</p>
+
+<pre class="codeblock">
+
+<code class="cmd">. logisreg for mpg weight</code>
+
+initial:       log likelihood = -51.292891
+alternative:   log likelihood = -46.081697
+rescale:       log likelihood = -45.181365
+Iteration 0:   log likelihood = -45.181365
+Iteration 1:   log likelihood = -29.420506
+Iteration 2:   log likelihood = -27.229801
+Iteration 3:   log likelihood = -27.175287
+Iteration 4:   log likelihood = -27.175156
+Iteration 5:   log likelihood = -27.175156
+
+my logistic                                      
+
+<code class="cmd">. logisreg</code>
+                                                 Number of obs   =         74
+                                                 Wald chi2(2)    =      17.78
+Log likelihood = -27.175156                      Prob &gt; chi2     =     0.0001
+
+-----------------------------------------------------------------------------
+foreign |      Coef.   Std. Err.       z     P&gt;|z|       [95% Conf. Interval]
+--------+--------------------------------------------------------------------
+    mpg |  -.1685869   .0919175     -1.834   0.067      -.3487418     .011568
+ weight |  -.0039067   .0010116     -3.862   0.000      -.0058894    -.001924
+  _cons |   13.70837   4.518709      3.034   0.002       4.851859    22.56487
+-----------------------------------------------------------------------------
+</pre>
+
+<p>
+Later, if I type <code class="cmd">logisreg</code> without arguments, 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. logisreg</code>
+
+my logistic                                      Number of obs   =         74
+                                                 Wald chi2(2)    =      17.78
+Log likelihood = -27.175156                      Prob &gt; chi2     =     0.0001
+
+-----------------------------------------------------------------------------
+foreign |      Coef.   Std. Err.       z     P&gt;|z|       [95% Conf. Interval]
+--------+--------------------------------------------------------------------
+    mpg |  -.1685869   .0919175     -1.834   0.067      -.3487418     .011568
+ weight |  -.0039067   .0010116     -3.862   0.000      -.0058894    -.001924
+  _cons |   13.70837   4.518709      3.034   0.002       4.851859    22.56487
+-----------------------------------------------------------------------------
+</pre>
+
+<p>
+Now for my comments:
+</p>
+
+<p>
+<ol>
+<li><code class="cmd">logisreg</code> followed the same outline as any
+estimation command.</li>
+
+<li>I obtained maximum likelihood estimates with the help of Stata's <code
+class="cmd">ml</code> command; see <!-- change manual --><span
+class="manual_entry">[R] ml</span> to learn more about this command, or much
+better, see the book <span class="manual_entry">Maximum Likelihood Estimation
+with Stata</span>.</li>
+
+<li>Note that I did not use <code class="cmd">ereturn post</code> to
+postestimation results.  <code class="cmd">ml</code> handled that for me.</li>
+
+<li>I did type <code class="cmd">ereturn local cmd "logisreg"</code> after the
+<code class="cmd">ml</code> statement.</li>
+
+<li>
+<p>
+I did not type
+</p>
+
+<pre class="codeblock">
+<code class="cmd">ereturn display </code>
+</pre>
+
+<p>
+to display final estimation results, although I could have.  I typed
+</p>
+
+<pre class="codeblock">
+<code class="cmd">ml display </code>
+</pre>
+
+<p>
+<code class="cmd">ml display</code> displays not only the coefficient table but the
+log-likelihood value, too.
+</p>
+</li>
+
+<li>The subroutine <code class="cmd">logis_ll</code>, which <code
+class="cmd">ml</code> required that I write (although the name was of my
+choosing), is stored in a separate ado-file.  I could not store <code
+class="cmd">logis_ll</code> in logisreg.ado because the name <code
+class="cmd">logis_ll</code> would be known only inside my ado-file, and thus
+the external <code class="cmd">ml</code> programs could not have called it.
+</li>
+</ol>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="exercises"></a>14. Exercises</h3>
+
+<ol>
+<li><a name="exer1"></a>
+Fix <code class="cmd">mytt</code> as we last left it in the exercises to <a
+href="nc152-l3.html">Lecture 3</a> (<code class="cmd">mytt</code> is attached
+below) to return <code class="cmd">r(t)</code> and <code
+class="cmd">r(df)</code>.  Remember, <code class="cmd">mytt</code> is now
+implemented in terms of <code class="cmd">mytti</code>, so first fix <code
+class="cmd">mytti</code> to return <code class="cmd">r(t)</code> and <code
+class="cmd">r(df)</code> and then fix <code class="cmd">mytt</code> to return
+those values.
+</li>
+
+<li><a name="exer2"></a>
+<p>
+Explain why the following does not work:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg</code> 
+
+Variable |     Obs        Mean   Std. Dev.       Min        Max
+---------+-----------------------------------------------------
+     mpg |      74     21.2973   5.785503         12         41  
+
+<code class="cmd">. mytti r(N) r(mean) r(sd) = 20</code>
+'r' found where integer expected
+r(7);
+</pre>
+
+<p>
+Explain why the following does work:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. summarize mpg </code>
+[output omitted]
+
+<code class="cmd">. local se = r(sd)</code>
+
+<code class="cmd">. mytti `r(N)' `r(mean)' `se' = 20</code>
+t(73) = 1.9289201
+</pre>
+</li>
+
+<li><a name="exer3"></a>
+<p>
+In <a href="nc152-l2.html#exer4">Exercise 4</a> of <a
+href="nc152-l2.html">Lecture 2</a>, we wrote <code class="cmd">predexp</code>
+to create a new variable containing the predictions of the mean y after a
+regression of ln(y).  As such, <code class="cmd">predexp</code> was our first
+example of a postestimation command.  In this lecture, we emphasized that we
+should ensure that a postestimation command is not accidentally misused by
+verifying that the stored estimates are what they are supposed to be.  Since
+our command is for use after <code class="cmd">regress</code>, the lecture
+recommended that we include the code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`e(cmd)'" != "regress" {
+     error 301
+}
+</code></pre>
+
+<p>
+The <code class="cmd">predexp</code> program contains no such lines:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program predexp
+     syntax newvarname [if] [in]
+     tempvar new
+
+     quietly { 
+          local s2 = e(rmse)^2
+          tempvar pred
+          predict double `pred' `if' `in'
+          gen `typlist'  `new' = exp(`pred')*exp(`s2'/2)
+          rename `new' `varlist'
+     }
+end
+</code></pre>
+
+<p>
+What happens if <code class="cmd">predexp</code> is misused?  Explain.
+</p>
+</li>
+
+<li><a name="exer4"></a>
+<p>
+<code class="cmd">linreg</code> has one problem:  it does not produce
+correct results in the presence of collinear variables.  For instance, if you
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. generate new = mpg 
+. linreg price mpg new foreign
+</code></pre>
+
+<p>
+the coefficients are correct, but the standard errors, t statistics,
+significance levels, and confidence intervals are incorrect.  This is all caused
+by the line
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local k     = rowsof(`XX')
+</code></pre>
+
+<p>
+Fix it.
+</p>
+
+<p>
+Hint:  The problem of collinear variables arises, numerically, when inverse
+matrices are calculated:  <code class="cmd">X'X</code> is not a full-rank
+matrix.  Stata's <code class="cmd">invsym()</code> function is prepared to deal
+with such matrices.  In the case of a singular matrix, <code
+class="cmd">invsym()</code> drops collinear rows and columns until the matrix
+can be inverted.  <code class="cmd">invsym()</code> returns a matrix that is
+physically k &#215; k, but it sets diagonal elements to 0 where the
+corresponding variable was dropped.  That is, in the lines
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local k     = rowsof(`XX')
+mat `XXinv' = invsym(`XX') 
+</code></pre>
+
+<p>
+matrix <code class="cmd">`XXinv'</code> will be physically k &#215; k but may contain zeros on the
+diagonal.  For our calculation formulas, k is the number of estimated parameters
+(or, the rank of <code class="cmd">X'X</code>), meaning the number of nonzero elements on the
+diagonal of <code class="cmd">`XXinv'</code>.
+</p>
+
+<p>
+Hint 2:  Find out about the <code class="cmd">diag0cnt()</code> function.
+</li>
+
+<li>
+<p>
+Change <code class="cmd">logisreg</code> to allow an <code
+class="cmd">or</code> option that would report odds ratios (exponentiated
+coefficients) rather than the coefficients themselves.  Start with the improved
+version of <code class="cmd">logisreg.ado</code>.
+</p>
+
+<p>
+Hint:  Note that <code class="cmd">ml display</code> has an <code
+class="cmd">eform()</code> option.  Specify option <code
+class="cmd">eform(or)</code> on that statement, and you will have the results
+you want.  So, now you just have to figure out how to get <code
+class="cmd">eform(or)</code> on that statement when you want it there.
+</p>
+
+</li>
+
+</ol>
+
+<p>
+Attached below are 
+<code class="cmd">END OF EXERCISES</code>
+</p>
+
+<p>
+Attached below are 
+</p>
+
+<ul>
+<li><code class="cmd">mytt.ado</code></li> 
+<li><code class="cmd">mytti.ado</code></li>
+</ul>
+
+<p>
+for use with <a href="#exer1">Exercise 1</a>.  
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE:<!--change version # --><a href="../../courses/nc152-10/lec4/mytt.ado">mytt.ado</a></th> 
+</tr>
+<tr>
+<td><pre class="cutout">
+<code class="cmd">program mytt</code>
+        <code class="cmd">syntax varname [=/exp] [if] [in] [, BY(varname) *]</code>
+
+        <code class="cmd">if "`exp'"=="" {</code>
+                <code class="cmd">tt_3 `0'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {</code>
+                <code class="cmd">capture confirm number `exp'</code>
+                <code class="cmd">if _rc==0 {</code>
+                        <code class="cmd">tt_1 `0'</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                        <code class="cmd">tt_2 `0'</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program tt_1</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+        <code class="cmd">quietly {</code>
+                <code class="cmd">quietly summarize `varlist' `if' `in'</code>
+                <code class="cmd">local n = r(N)</code>
+                <code class="cmd">local xbar = r(mean)</code>
+                <code class="cmd">local s = r(sd)</code>
+        <code class="cmd">}</code>
+        <code class="cmd">mytti `n' `xbar' `s' = `exp'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_2</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+
+        <code class="cmd">tempvar diff</code>
+        <code class="cmd">quietly gen `diff' = `varlist' - (`exp') `if' `in'</code>
+        <code class="cmd">tt_1 `diff' = 0 `if' `in'</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program tt_3</code>
+        <code class="cmd">syntax varname [if] [in], BY(varname) [*]</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Mark the             */
+                                        /* to-use subsample     */
+<code class="cmd">        marksample touse</code>
+
+        /* ---------------------------------------------------- */
+                                        /* make group variable  */
+                                        /* and verify 2 groups  */
+        <code class="cmd">tempvar group</code>
+        <code class="cmd">sort `touse' `by'</code>
+        <code class="cmd">quietly by `touse' `by': gen `group'=1 if _n==1 &amp; `touse'</code>
+        <code class="cmd">quietly replace `group' = sum(`group') if `touse'</code>
+        <code class="cmd">if `group'[_N]!=2 {</code>
+                <code class="cmd">di as error "`by' must take on two values"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+
+        /* ---------------------------------------------------- */
+                                        /* create calculation   */
+                                        /* ingredients          */
+
+        <code class="cmd">quietly summarize `varlist' if `group'==1 &amp; `touse'</code>
+        <code class="cmd">local n1 = r(N)</code>
+        <code class="cmd">local x1 = r(mean)</code>
+        <code class="cmd">local s1 = r(sd)</code>
+
+        <code class="cmd">quietly summarize `varlist' if `group'==2 &amp; `touse'</code>
+        <code class="cmd">local n2 = r(N)</code>
+        <code class="cmd">local x2 = r(mean)</code>
+        <code class="cmd">local s2 = r(sd)</code>
+
+        <code class="cmd">mytti `n1' `x1' `s1' = `n2' `x2' `s2', `options'</code>
+<code class="cmd">end</code>
+      </pre></td> 
+   </tr> 
+</table>
+
+<p></p>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE:<!--change version # --><a href="../../courses/nc152-10/lec4/mytti.ado">mytti.ado</a></th> 
+</tr>
+<tr>
+<td><pre class="cutout">
+<code class="cmd">program mytti</code>
+        <code class="cmd">tokenize "`0'", parse(" =,")</code>
+        <code class="cmd">IsObs `1'</code>
+        <code class="cmd">IsMean `2'</code>
+        <code class="cmd">IsSd `3'</code>
+        <code class="cmd">IsEqual `4'</code>
+
+        <code class="cmd">capture IsMean `6'</code>
+        <code class="cmd">if _rc {               </code>  /* must be syntax 1 */
+      <code class="cmd">          IsMean `5'</code>
+                <code class="cmd">IsNull `6'</code>
+                <code class="cmd">tt_1i `*'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {                 </code>       /* must be syntax 3 */
+  <code class="cmd">              IsObs `5'   </code>
+                /* IsMean `6' already done */
+<code class="cmd">                IsSd `7'     </code>
+<code class="cmd">                tt_3i `*'</code>
+       <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program IsObs</code>
+        <code class="cmd">args n</code>
+        <code class="cmd">confirm integer number `n'</code>
+        <code class="cmd">if `n'&lt;2 {</code>
+                <code class="cmd">di as error "number of observations must be &lt;= 2"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program IsNull</code>
+        <code class="cmd">args nothing</code>
+        <code class="cmd">if "`nothing'" != "" {</code>
+                <code class="cmd">di as error "`*' found where nothing expected"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program IsMean</code>
+        <code class="cmd">args mu</code>
+        <code class="cmd">confirm number `mu'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program IsSd</code>
+        <code class="cmd">args sd</code>
+        <code class="cmd">confirm number `sd'</code>
+        <code class="cmd">if `sd'&lt;=0 {</code>
+                <code class="cmd">di as error "`sd' is not a valid standard deviation"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program IsEqual</code>
+        <code class="cmd">args eqsign</code>
+        <code class="cmd">if "`eqsign'" != "=" { </code>
+			<code class="cmd">exit 198 </code>
+		<code class="cmd">}</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program tt_1i</code>
+        <code class="cmd">args n xbar s eqsign mu</code>
+
+        <code class="cmd">local t = (`xbar'-`mu')*sqrt(`n')/`s'</code>
+
+        <code class="cmd">di "t(" `n'-1 ") = " `t'</code>
+<code class="cmd">end</code>
+
+
+<code class="cmd">program tt_3i</code>
+        /*    1  2  3    4    5  6  7 */
+<code class="cmd">       args n1 x1 s1 eqsign n2 x2 s2</code>
+
+        <code class="cmd">macro shift 7</code>
+        <code class="cmd">local 0 "`*'"</code>
+        <code class="cmd">syntax [, UNEqual Welch]   </code>
+
+
+        /* ---------------------------------------------------- */
+                                        /* Verify <code class="cmd">welch</code> and    */
+                                        /* set <code class="cmd">unequal</code>         */
+<code class="cmd">	if "`welch'"!=""  {
+ 	       local unequal "unequal"
+	}</code>
+
+        /* ---------------------------------------------------- */
+                                        /* create calculation   */
+                                        /* ingredients          */
+<code class="cmd">        local v1 = `s1'^2</code>
+        <code class="cmd">local V1 = `v1'/`n1'</code>
+
+        <code class="cmd">local v2 = `s2'^2</code>
+        <code class="cmd">local V2 = `v2'/`n2'</code>
+        /* ---------------------------------------------------- */
+
+                                        /* Perform calculation  */
+
+      <code class="cmd">  if "`unequal'"=="" {   </code>         /* ... equal Var case   */
+      <code class="cmd">          local d = `n1'+`n2'-2</code>
+                   <code class="cmd">local t = (`x1'-`x2') / (         ///</code>
+                        <code class="cmd">sqrt(((`n1'-1)*`v1' +        ///</code>
+                        <code class="cmd">(`n2'-1)*`v2')/`d') *        ///</code>
+                        <code class="cmd">sqrt(1/`n1'+1/`n2')          ///</code>
+                        <code class="cmd">)</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {        </code>                  /* ... unequal Var case */
+        <code class="cmd">        local t = (`x1'-`x2')/sqrt(`V1' + `V2')</code>
+                <code class="cmd">if "`welch'"=="" {</code>
+                        <code class="cmd">local d = (`V1'+`V2')^2 / (            ///</code>
+                            <code class="cmd">`V1'^2/(`n1'-1) + `V2'^2/(`n2'-1)  ///</code>
+                            <code class="cmd">)</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                        <code class="cmd">local d = -2 + (`V1'+`V2')^2 /         /// </code>
+                            <code class="cmd">( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+        /* ---------------------------------------------------- */
+                                        /* display result       */
+      <code class="cmd">  di "t(" `d' ") = " `t'</code>
+<code class="cmd">end</code>
+</pre></td> 
+</tr> 
+</table>
+
+<!-- exercise NetCourseNow -->
+
+<div class="section_div"></div>
+
+<div class="center"><h2>End of Lecture 4</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td class="nc4lec" colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>

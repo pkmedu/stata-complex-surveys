@@ -1,0 +1,2624 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/09/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152&#8212;Lecture 3</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+
+<div class="section_div"></div>
+<div class="center">
+<table class="ncbanner">
+<tr>
+<td><img src="../images/lecture3v.gif" alt="Lecture 3"></td>
+<td><img src="../images/nc152banner.gif" alt="Banner"></td>
+</tr>
+</table>
+</div>
+<div class="section_div"></div>
+
+
+<h2><a name="toc"></a>Lecture 3 - Table of Contents</h2>
+<div class="main_section"><a href="#learn">1. What you must learn</a></div>
+<div class="main_section"><a href="#scalars">2. Scalars</a></div>
+<div class="main_section"><a href="#binary">3. Binary accuracy</a></div>
+<div class="main_section"><a href="#accuracy">4. Accuracy of macros versus scalars</a></div>
+<div class="main_section"><a href="#converting">5. Converting a program from macros to scalars</a></div>
+<div class="main_section"><a href="#by">6. Handling by() options</a></div>
+<div class="main_section"><a href="#sorting">7. Sorting</a></div>
+<div class="main_section"><a href="#lowlevel">8. Low-level parsing</a></div>
+<div class="main_section"><a href="#programming">9. Programming immediate commands</a></div>
+<div class="main_section"><a href="#rewriting">10. Rewriting mytt in terms of mytti</a></div>
+<div class="main_section"><a href="#parsing">11. Parsing new variables</a></div>
+<div class="main_section"><a href="#exercises">12. Exercises</a></div>
+
+
+<div class=" section_div"></div>
+<h3><a name="learn"></a>1. What you must learn</h3>
+
+<p>
+The first two lectures covered a lot of ground. They were not, I hope, too
+difficult in that they covered a lot of review material.  So, let me emphasize a
+few of the points:
+</p>
+
+<ol>
+<li>You must master <code class="cmd">syntax</code>.  Most Stata programs
+contain this command, and it solves the problem of how to parse user
+input.</li>
+
+<li>You must master local macros, meaning that it must become second nature to
+you when to refer to <span class="repl">macroname</span>, when to use `
+<span class="repl">macroname</span>', and when to use "`
+<span class="repl">macroname</span>'".</li>
+
+<li> You must learn to use subroutines&#8212;lots of them&#8212;to simplify
+your code.  Think of a subroutine as something that does one thing well.</li>
+
+<li> You must learn to make your code readable.  For instance, never refer to
+<code class="cmd">`1'</code>, <code class="cmd">`2'</code>, 
+<code class="cmd">...</code> in the guts of your code.  Instead, "unload" the
+numbered macros into better names such as 
+<code class="cmd">local depvar "`1'"</code>, and then subsequently refer to 
+<code class="cmd">`depvar'</code>.  This prevents bugs.</li>
+
+<li> Along the same lines, you must learn to use "helper" macros to simplify
+notation.  I did this in my answer to the exercises in writing 
+<code class="cmd">equad</code>.  My code might have been cast in terms of 
+<code class="cmd">_b[`1']</code> and <code class="cmd">_b[`2']</code>.  The 
+first thing I did was to define better macros for <code>`1'</code> 
+and <code>`2'</code>,
+
+<pre class="codeblock"><code class="cmd">
+local X "`1'"
+local X2 "`2'"
+</code></pre>
+
+<p>
+so that my code could have been stated in terms of 
+<code class="cmd">_b[`X']</code> and <code class="cmd">_b[`X2']</code>.  
+Even that was too ungainly, so I also defined
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local a "_b[`X2']"
+local b "_b[`X']"
+</code></pre>
+
+<p>
+so that I could refer to <code class="cmd">`a'</code> and 
+<code class="cmd">`b'</code>.  By the time I was through with all of this, 
+I did not think in terms of all the substitutions (
+<code class="cmd">`a'</code> expands to <code class="cmd">_b[`X2']</code>, 
+which expands to <code class="cmd">_b[`1']</code>, which expands to 
+<code class="cmd">_b[<span class="repl">the user's first varlist argument</span>]</code>).  
+I think of <code class="cmd">`a'</code> simply as the coefficient on 
+<code class="cmd">`X2'</code> and <code class="cmd">`b'</code> as the 
+coefficient on <code class="cmd">`X'</code>.
+</p>
+
+</li>
+</ol>
+
+<p>
+The payoff to following these rules is remarkable.  For instance, the logic of
+<code class="cmd">mytt</code> was
+</p>
+
+
+<pre class="codeblock">
+                      <code class="cmd">mytt varname [=exp] [, by()]</code>
+                                   |
+                                   |
+              +---------&lt;----------+----------&gt;------------+
+              |                    |                       |
+              |                    |                       |
+      <code class="cmd">tt_1 varname=#</code>     <code class="cmd">tt_2 varname=varname</code>       <code class="cmd">tt_3 varname, by()</code>
+              |                    |
+              |                    |
+              +---------&lt;----------+
+</pre>
+
+
+<p>
+which is to say, <code class="cmd">mytt</code> split the problem in one of
+three ways (<code class="cmd">tt_1</code>, <code class="cmd">tt_2</code>, and
+<code class="cmd">tt_3</code>), and elegantly, <code class="cmd">tt_2</code>
+amounted to nothing more than defining a temporary variable and passing the
+transformed problem along to <code class="cmd">tt_1</code>.
+</p>
+
+<p>
+This was not done by design.  It was just that, in making 
+<code class="cmd">mytt</code> an approachable problem, it seemed reasonable to
+consider three separate subprograms for the three separate statistical
+problems, and having done that, I discovered that <code class="cmd">tt_2</code>
+could be stated in terms of <code class="cmd">tt_1</code>.
+</p>
+
+<p>
+A similarly happy accident happened to me in writing 
+<code class="cmd">equad</code>.  To simplify notation, I used lots of macros,
+including one, <code class="cmd">`c'</code>, for 
+<code class="cmd">_b[_cons]</code>.  I did this because I thought in terms of
+the standard quadratic a*x^2 + b*x + c and just wanted familiar letters.  When
+it came time to add the <code class="cmd">nocons</code> option, which amounted
+to setting c=0, I literally could set <code class="cmd">`c'</code> equal to 0.
+I did not plan this; it merely happened.
+</p>
+
+<p>
+Both of these fortunate events happened to me because I followed the above
+rules.  I suspect that many of you will be surprised that I view programming
+as a sequence of pleasant surprises.
+</p>
+
+<p>
+In my younger days, I did not view programming that way.  My programs seemed to
+be a cornucopia of special cases and intertangled logic.  Rather than executing
+a sequence of steps I understood and could predict, my programs seemed to exist
+in a quantum state that occasionally coalesced into an observable result.
+</p>
+
+<p>
+I learned that I could not write long, complex programs.  I could, however,
+write simple programs, and I learned that I could solve long, complex problems
+by stringing together simple programs.
+</p>
+
+<p>
+There is no better advice that I can give you.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+
+<div class="section_div"></div>
+
+<h3><a name="scalars"></a>2. Scalars</h3>
+
+<p>
+Okay&#8212;enough philosophy&#8212;let's return to the nuts and bolts.  I have
+mentioned that Stata has scalars but have never shown them to you.  So, try
+the following:
+</p>
+
+
+<pre class="codeblock">
+<code class="cmd">. drop _all</code>                    (don't ask why the <code class="cmd">drop _all</code> yet)
+
+<code class="cmd">. scalar x = 3</code> 
+
+<code class="cmd">. display x</code>
+<code class="cmd">3</code>
+
+<code class="cmd">. display x+2</code>
+<code class="cmd">5</code>
+
+<code class="cmd">. scalar y = -2.15/2</code>
+
+<code class="cmd">. display y</code>
+-1.075
+
+<code class="cmd">. display x+y</code>
+1.925
+</pre>
+
+<p>
+Scalars have names and may contain numeric or string values.  The values they
+contain are set by the <code class="cmd">scalar</code> command.  The contents
+of a scalar can be obtained by typing the scalar's name in an expression.
+</p>
+
+<p>
+Let's repeat the experiment using macros:
+</p>
+
+
+<pre class="codeblock">
+Scalar experiment                  Corresponding macro experiment
+----------------------             ------------------------------
+<code class="cmd">. scalar x = 3                     . local x = 3</code>
+
+<code class="cmd">. display x                        . display `x'</code>
+3                                  3
+
+<code class="cmd">. display x+2                      . display `x'+2</code>
+5                                  5
+
+<code class="cmd">. scalar y = -2.15/2               . local y = -2.15/2</code>
+
+<code class="cmd">. display y                        . display `y'</code>
+-1.075                             -1.075
+
+<code class="cmd">. display x+y                      . display `x' + `y'</code>
+1.925                              1.925
+</pre>
+
+<p>
+The results of both are indistinguishable.  Stata, however, can distinguish the
+scalar named <code>x</code> from the macro <code>x</code>.  When we want the 
+contents of the macro <code>x</code>, we type <code class="cmd">`x'</code>.  
+When we want the contents of the scalar <code>x</code>, we type 
+<code class="cmd">x</code>, but we are restricted to typing <code class="cmd">x
+</code> only in the context of an expression, whereas we can type
+<code class="cmd">`x'</code> anywhere.  If <code class="cmd">`x'</code>
+contained <code class="cmd">1</code>, and I wanted to execute the program 
+<code class="cmd">tt_1</code>, I could type <code class="cmd">tt_`x'</code> 
+and Stata would understand me.
+</p>
+
+<p>
+Scalar <code>x</code> and macro <code>x</code> do not have to contain the same thing:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. local x = 5.7</code>
+
+<code class="cmd">. scalar x = 3.14</code>
+
+<code class="cmd">. display "The macro x contains " `x' " and the scalar contains " x</code>
+The macro x contains 5.7 and the scalar contains 3.14
+</pre>
+
+<p>
+Stata does have a problem knowing what <code>x</code> means when
+there is both a variable <code>x</code> and a scalar 
+<code>x</code>, but
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. input x </code>
+
+             x  
+  1. 1
+  2. 2
+  3. end
+
+<code class="cmd">. display x</code>
+1
+</pre>
+
+<p>
+Scalar <code>x</code> still contains 5.7, but 
+<code class="cmd">display x</code> interpreted <code>x</code> as 
+the variable called <code>x</code> and displayed the value of the 
+first observation.  If a variable and scalar have the same name, the only way to
+obtain the value of the scalar is to indicate explicitly that you want the
+scalar:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. display scalar(x)</code>
+3.14
+</pre>
+
+<p>
+This may seem inconvenient, but you can avoid the inconvenience if scalars have
+names different from all the variables. That turns out to be easy to 
+arrange&mdash;we will show how later&#8212;so put that problem aside:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. drop x</code>
+</pre>
+
+<p>
+The important thing is that Stata can distinguish scalar 
+<code>x</code> from the contents of macro 
+<code>x</code>.
+</p>
+
+<p>
+As I mentioned earlier, scalars may contain numeric or string values.  Athough
+scalars are most often used for storing numbers, there is one major benefit to
+using them with string values.  By doing so, you can avoid macro expansion.
+</p>
+
+<p>
+For example, characters such as $ or ` (left quote) normally declare what
+follows them to be a macro name, but sometimes you may not intend for them to
+refer to a macro.
+</p>
+
+<p>
+To demonstrate this, take a look at the following ado-file.
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec3/showusertext.ado">showusertext.ado</a></th>
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program define showusertext
+<!-- change version # -->     version 10
+     args usertext
+     display
+        
+     showusertext_macro_wrk "`usertext'"
+     display
+     
+    showusertext_macval_wrk "`macval(usertext)'"
+
+     display
+     
+     scalar s = `"`macval(usertext)'"'
+     showusertext_scalar_wrk s
+     display
+end
+
+program define showusertext_macro_wrk
+<!-- change version # -->     version 10
+     args usertextmacro
+     
+     display `"1) showusertext_macro_wrk received |`usertextmacro'|"'
+     display `"`usertextmacro'"'
+end
+
+program define showusertext_macval_wrk
+<!-- change version # -->     version 10
+     args usertextmacro
+     
+     display `"2) showusertext_macval_wrk received |`usertextmacro'|"'
+     display `"   so if we try to just display it, we will see"'
+     display `"`usertextmacro'"'
+     display
+     display `"   If we force it to only undergo one level of"'
+     display `"   macro expansion with macval(), we will see"'
+     display `"`macval(usertextmacro)'"'
+     display
+     display `"   Using macval() is a possible solution,"'
+     display `"   but then you would have to use macval()"'
+     display `"   every time you referenced the macro."'
+end
+
+program define showusertext_scalar_wrk
+<!-- change version # -->     version 10
+     args usertextscalarname
+     
+     display "3) showusertext_scalar_wrk received " ///
+          `"|`usertextscalarname'|"'
+     display `usertextscalarname'
+end
+</code></pre></td>
+</tr>
+</table>
+
+<p>
+This program does nothing more than take a user-supplied string in the main
+program (showusertext) and pass it in a different way to three separate
+subroutines (showusertext_macro_wrk, showusertext_macval_wrk, and
+showusertext_scalar_wrk).
+</p>
+
+<p>
+In showusertext, we assume that the user has supplied a string, and we store it
+in the local macro usertext.  The string is then passed, exactly as it was
+specified, to showusertext_macro_wrk, which then displays exactly what it
+received.
+</p>
+
+<p>
+Next the user-supplied string is passed to showusertext_macval_wrk using the
+<code class="cmd">macval()</code> function.  <code class="cmd">macval()</code>
+specifies that only one level of macro expansion be used, meaning that the
+macro `usertext' is expanded but none of the macros it may contain will be
+expanded.  showusertext_macval_wrk displays the macro as it was received
+without the use of <code class="cmd">macval()</code>.  Then the value is
+displayed using <code class="cmd">macval()</code>.
+</p>
+
+<p>
+The user-supplied string is then stored in a scalar, using 
+<code class="cmd">macval()</code> to
+avoid any deeper macro expansion, and it is passed along to
+showusertext_scalar_wrk.  showusertext_scalar_wrk displays what was received,
+which should evaluate to an s, the scalar name.  Last it displays the macro
+`usertextscalarname', evaluating to scalar s, which then evaluates to the
+original text supplied by the user.
+</p>
+
+<p>
+Let's run the program and take a look at what happens.  Since there are
+two types of macros in Stata, we will run it once with an unintentional
+reference to a global macro ($dollar) that doesn't exist and once with an
+unintentional reference to local macros `left' and `right' that do not exist.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">
+. showusertext "This has a \$dollar sign in it."</code>
+                                                                                                                             
+1) showusertext_macro_wrk received |This has a  sign in it.|
+This has a  sign in it.
+                                                                                                                             
+2) showusertext_macval_wrk received |This has a  sign in it.|
+   so if we try to just display it, we will see
+This has a  sign in it.
+                                                                                                                             
+   If we force it to only undergo one level of
+   macro expansion with macval(), we will see
+This has a $dollar sign in it.
+                                                                                                                             
+   Using macval() is a possible solution,
+   but then you would have to use macval()
+   every time you referenced the macro.
+                                                                                                                             
+3) showusertext_scalar_wrk received |s|
+This has a $dollar sign in it.
+
+<code class="cmd">. showusertext "This has \`left' and \`right' single quotes in it."</code>
+
+1) showusertext_macro_wrk received |This has  and  single quotes in it.|
+This has  and  single quotes in it.
+
+2) showusertext_macval_wrk received |This has  and  single quotes in it.|
+   so if we try to just display it, we will see
+This has  and  single quotes in it.
+   
+   If we force it to only undergo one level of
+   macro expansion with macval(), we will see
+This has `left' and `right' single quotes in it.
+   
+   Using macval() is a possible solution,
+   but then you would have to use macval()
+   every time you referenced the macro.
+
+3) showusertext_scalar_wrk received |s|
+This has `left' and `right' single quotes in it.
+</pre>
+
+<p>
+Notice that I have used the backslash (\) as an escape character to prevent our
+unintended macros from being expanded in the Command window.  We have to use
+this to get the actual string into our program correctly.
+</p>
+
+<p>
+Whenever a macro contains a "number", it is really a string because, when
+macros contain numbers, they contain the string representation of the number.
+A macro that contains the number 12 actually contains the characters
+1-followed-by-2.  This works as a number because, when Stata sees
+1-followed-by-2, it translates that into the number 12.
+</p>
+
+<p>
+Scalars, on the other hand, contain the 8-byte floating-point binary
+representation of the number.  If you type
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. scalar x = 12 </code>
+</pre>
+
+<p>
+Stata sees 1-followed-by-2 and produces the binary number 12, which is to say,
+something that probably looks like 000..001100.  That bit pattern is stored in
+scalar <code>x</code>.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="binary"></a>3. Binary accuracy</h3>
+
+<p>
+An interesting issue arises because of the base conversion.  Stata, and most
+other computer programs, thinks in binary, whereas you and most other humans
+think in base 10.  As far as integers go, there is no issue because there is a
+one-to-one correspondence between the integers written in base 10 and base 2: It
+does not matter whether you count 1, 2, 3, 4, 5 or 1, 10, 11, 100, 101; they
+mean the same thing.
+</p>
+
+<p>
+For floating-point numbers, however, that system breaks down if we restrict
+ourselves to finite precision.  First, let's agree on how we write and
+interpret floating-point numbers.  For demonstration purposes, it will be
+enough to discuss numbers less than 1.
+</p>
+
+<p>
+When we write ".5", we interpret that to mean 5*10^(&minus;1).  That is, we
+write a decimal point, and the columns correspond to
+</p>
+
+<pre class="codeblock">
+  10^(-1)   10^(-2)    10^(-3)    ...
+.    5         0          0       
+</pre>
+
+<p>
+Similarly, when we write a binary floating-point number, we write a binary
+point, and the columns correspond to
+</p>
+
+<pre class="codeblock">
+.  2^(-1)    2^(-2)     2^(-3)      ...
+.    1         0          0
+</pre>
+
+<p>
+.1 is how we write one-half in binary, and we interpret that to mean
+1*2^(&minus;1).
+</p>
+
+<p>
+Everyone knows that you cannot write one-third precisely in a finite number of
+decimal digits.  You can write .333, say, but that has error .0003333.... It
+takes an infinite number of decimal digits to record one-third without error.
+Similarly, it takes an infinite number of binary digits to record one-third,
+the pattern being .010101....
+</p>
+
+<p>
+So far, we have no differences between the two bases.  Some numbers, however,
+have exact finite-digit representation in base 10 but not in base 2.   One such
+number is one-tenth, which in base 2 is 
+</p>
+
+<pre class="codeblock">
+.000110011001100...
+</pre>
+
+<p>
+This, as it turns out, causes no end of trouble when humans communicate with
+computers.  The computer stores the binary number with some finite number of
+digits, which means that when the human says one-tenth, what is stored is not
+one-tenth.  Let's say the computer uses 8 digits (the IEEE standard is 52).
+You say one-tenth, and the computer stores
+</p>
+
+<pre class="codeblock">
+12345678
+.00011001          
+</pre>
+
+<p>
+That is actually the number 1/16&#43;1/32&#43;1/256 = .09765625, but that is as
+close as this 8-digit binary computer can come to one-tenth.  You then ask to
+see this number, and the computer, to disguise this from you, displays
+<code>.1</code>.  The computer is not being dishonest; it's just that when it
+goes through its 8-digit base conversion routine, the number .00011001 actually
+converts to <code>0.1</code>.
+</p>
+
+<p>
+To review, you thought you stored .1, you asked for verification, and the
+computer reported <code>.1</code>.  Call this number x.  Now, you make the
+calculation 1&#43;x&minus;1, which the computer does with full 8-digit
+accuracy:
+</p>
+
+<pre class="codeblock">
+ 1.0000000  (this number has 8 digits)
+&#43; .00011001 (this number has 8 digits)
+ ---------
+ 1.0001100  (the final 1 is lost because we have only 8 digits)
+</pre>
+
+<p>
+Now we take that number and subtract 1:
+</p>
+
+<pre class="codeblock">
+  1.0001100 
+&minus; 1.0000000
+  ---------
+   .0001100
+</pre>
+
+<p>
+When you ask to see the answer, the computer reports 1/16+1/32 = .09375, which
+is not one-tenth, nor is it even the original number.
+</p>
+
+<p>
+Now, it would not have surprised you if I had told you that, with a digital
+computer,
+</p>
+
+<pre class="codeblock">
+1 + 1/3 - 1 != 1/3
+</pre>
+
+<p>
+because you know that 1/3 has no exact finite-digit representation. You might
+suspect that adding and subtracting 1 would lose one or more digits from
+whatever accuracy the computer had.  What is also true is that
+</p>
+
+<pre class="codeblock">
+1 + 1/10 - 1 != 1/10
+</pre>
+
+<p>
+and for exactly the same reason:  1/10 has no exact binary representation.
+</p>
+
+<p>
+Mostly, you can ignore this difficulty, but it means you must be cautious when
+using the equality test operator ==.  x==y may be FALSE in cases where you
+think it should be TRUE.
+</p>
+
+<p>
+In fact, we have that problem with our <code class="cmd">mytt</code> program:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mytt price, by(foreign)</code>
+t(72) = -.41388988
+
+<code class="cmd">. gen g = 1.1 if foreign==0</code>
+(22 missing values generated)
+
+<code class="cmd">. replace g = 1.2 if foreign==1</code>
+(22 real changes made)
+
+<code class="cmd">. mytt price, by(g) </code>
+t(50) = .
+</pre>
+
+<p>
+I have done nothing but change the grouping variable.  Variable 
+<code class="cmd">foreign</code> takes on values 0 and 1, whereas 
+<code class="cmd">g</code> takes on values 1.1 and 1.2.  The result of the 
+t-test, whether <code class="cmd">by(foreign)</code> or 
+<code class="cmd">by(g)</code>, should be the same, but it is not.  If we go 
+back to our program, the source of this problem lies in the lines
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `by' if `touse' 
+local min = r(min)
+local max = r(max)
+</code></pre>
+
+<p>
+in <code class="cmd">tt_3</code>.  We store the printable form (the base-10
+equivalent) of <code class="cmd">r(min)</code> and 
+<code class="cmd">r(max)</code> in <code class="cmd">`min'</code> and 
+<code class="cmd">`max'</code>.  Later in our code, we use 
+<code class="cmd">`min'</code> and <code class="cmd">`max'</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' if `by'==`min' &amp; `touse'
+...
+quietly summarize `varlist' if `by'==`max' &amp; `touse'
+...
+</code></pre>
+
+<p>
+In this example, <code class="cmd">`by'</code> turns out never to be equal to
+<code class="cmd">`max'</code>.
+</p>
+
+<p>
+To be clear, we would find that <code class="cmd">`by'</code> is equal to 
+<code class="cmd">r(min)</code> 22 times if we had asked the question in that 
+way, but <code class="cmd">`max'</code> contains an imperfect copy of 
+<code class="cmd">r(max)</code> because that copy is in base 10.  (The rounding
+problem turned out not to affect <code class="cmd">`min'</code> in this case.
+For a randomly drawn number that has no finite representation, we have a 50%
+chance of changing the last bit by going through the base conversions, which is
+to say, a 50% chance of introducing a relative error of 2^(&minus;52), or
+roughly 2.220*10^(&minus;16).)
+</p>
+
+<p>
+Scalars give us a way of obtaining a perfect binary copy of the binary number
+in <code class="cmd">r(min)</code>.  All we have to do to fix our program is change
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `by' if `touse' 
+local min = r(min)
+local max = r(max)
+</code></pre>
+
+<p>
+to read 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempname min max 
+quietly summarize `by' if `touse' 
+scalar `min' = r(min)
+scalar `max' = r(max)
+</code></pre>
+
+<p>
+The remaining part of the code, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' if `by'==`min' &amp; `touse'
+...
+quietly summarize `varlist' if `by'==`max' &amp; `touse'
+...
+</code></pre>
+
+<p>
+will work unmodified.  
+</p>
+
+<p>
+If you are paying close attention, you may be objecting at this point.
+Remember when we had a variable in our dataset called 
+<code>x</code> and a scalar <code>x</code>?  When we 
+referred to <code>x</code>, Stata interpreted this to mean the 
+variable, not the scalar.  Should not our remaining lines be modified to read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' if `by'==scalar(`min') &amp; `touse'
+...                                  ^^^^^^^^^^^^^
+quietly summarize `varlist' if `by'==scalar(`max') &amp; `touse'
+...                                  ^^^^^^^^^^^^^
+</code></pre>
+
+<p>
+The answer is that it would not hurt, but it is not necessary.  The scalars are
+not named <code class="cmd">min</code> and <code class="cmd">max</code> but are
+named <code class="cmd">`min'</code> and <code class="cmd">`max'</code>, names
+we obtained from <code class="cmd">tempname</code>.  
+<code class="cmd">tempname</code> gave us names guaranteed to be unique, with 
+respect to both the data and existing scalars.  There is nothing else (variable,
+scalar, or actually, anything) named <code class="cmd">`min'</code> or 
+<code class="cmd">`max'</code>, so omitting the 
+<code class="cmd">scalar()</code> is safe.
+</p>
+
+<p>
+So, when should you use scalars?  In this case, its use was required to
+generalize our <code class="cmd">mytt ..., by 
+<span class="repl">groupvar</span>)</code> command to allow 
+<code class="cmd"><span class="repl">groupvar</span></code> to be nonintegers.  In fact, users will rarely call us with noninteger 
+<code class="cmd"><span class="repl">groupvar</span></code>, 
+but it is a fix that we should make.
+</p>
+
+<p>
+This case turns out to be the only case when you absolutely must use scalars.
+In short, you must use scalars if you plan to obtain a value from the data and
+then, later, test the data for equality with that value.  In all other
+cases, use scalars when you need greater accuracy.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="accuracy"></a>4. Accuracy of macros versus scalars</h3>
+
+<p>
+Because of the continual base conversions, macros are 1 bit out of
+52&#8212;which is to say, 2^(&minus;52) = 2.220*10^(&minus;16)&#8212;less
+accurate than scalars.  Actually, macros are less accurate than that because,
+given how Stata records numbers into macros, you are guaranteed only 12
+(decimal) digits of accuracy.  Stata converts numbers to printable form for
+macros using a %18.0g format.  For numbers between 10^*(&minus;17) and 10^17 in
+absolute value, this results in 16 decimal digits, such as
+</p>
+
+<pre class="codeblock">
+|---+----|----+---
+ 1.234567890123456
+</pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock">
+|---+----|----+---
+-123456789012345.6
+</pre>
+
+<p>
+For very large  or very small numbers, however, this becomes 
+</p>
+
+<pre class="codeblock">
+|---+----|----+---
+ 1.23456789012e+18
+ 1.23456789012e-30
+</pre>
+
+<p>
+Twelve digits is still a lot of accuracy.  For instance, in terms of precisely
+storing the distance from the Earth to the Sun, a macro will be accurate to
+&plusmn; 15 centimeters (the total distance is roughly 149.6 million
+kilometers).  A Stata scalar will be accurate to &plusmn; .003 centimeters.  For
+those familiar with computers, a 4-byte floating-point number provides roughly 7
+digits of accuracy, and an 8-byte double (equivalent to a Stata scalar) provides
+roughly 16 digits of accuracy, so a macro is somewhere in between.
+</p>
+
+<p>
+In terms of data, little in this world is measured to 12 digits of accuracy.  In
+calculations performed with finite precision, however, errors propagate.  For
+most statistical calculations, the difference caused by 12 versus 16 digits of
+accuracy does not matter, but for long and taxing calculations, you should
+use scalars.  The guideline I use is this:  unless the calculation explicitly
+requires me to think about precision issues, or unless the calculation is
+explicitly iterative, it is safe to use macros.
+</p>
+
+<p>
+On the other hand, using scalars is really no more difficult than using macros,
+so I generally use scalars.  
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="converting"></a>5. Converting a program from macros to scalars</h3>
+
+<p>
+Our <code class="cmd">tt_1</code> subroutine in <code class="cmd">mytt</code> currently reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varname =/exp [if] [in]
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+
+<p>
+If we want to use scalars for the calculation, we could change it to read
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program tt_1</code>
+     <code class="cmd">syntax varname =/exp [if] [in]</code>
+     <code class="cmd">tempname n xbar x t        </code>                     /* &lt;-- new        */
+     <code class="cmd">quietly {</code>
+          <code class="cmd">quietly summarize `varlist' `if' `in'</code>
+          <code class="cmd">scalar `n' = r(N)</code>                          /* &lt;-- modified  */
+          <code class="cmd">scalar `xbar' = r(mean)  </code>                  /* &lt;-- modified  */
+          <code class="cmd">scalar `x' = r(sd)</code>                  /* &lt;-- modified */
+          <code class="cmd">scalar `t' = (`xbar'-`exp')*sqrt(`n')/`x' </code> /* &lt;-- */
+     <code class="cmd">}</code>
+     <code class="cmd">di "t(" `n'-1 ") = " `t'</code>
+<code class="cmd">end</code>
+</pre>
+
+<p>
+That is, we add a declaration of our temporary scalars
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempname n xbar x t
+</code></pre>
+
+<p>
+then we look through our program for lines like 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local t = (`xbar'-`exp')*sqrt(`n')/`s'
+^^^^^^^                            ^^^
+</code></pre>
+
+<p>
+and change them to read 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+scalar `t' = (`xbar'-`exp')*sqrt(`n')/`x'
+^^^^^^^^^^                            ^^^
+</code></pre>
+
+<p>
+Using <code class="cmd">`xbar'</code> in the expression above is the correct
+way to refer to either a macro or a scalar with a temporary name.  (Before the
+change, <code class="cmd">`xbar'</code> was the number itself. Now, 
+<code class="cmd">`xbar'</code> is the name of the scalar containing the 
+number.)  Notice also that <code class="cmd">`s'</code>, which was a local 
+macro, is replaced by <code class="cmd">`x'</code>, the equivalent temporary 
+scalar.  The previous line was changed to define <code class="cmd">scalar `x'
+</code>, rather than <code class="cmd">scalar `s'</code>.  This was done mainly 
+to point out the fact that if one macro or scalar name is changed, you need to 
+change all subsequent references to that scalar or macro.
+</p>
+
+<p>
+In this program, it is not worth the effort to make the change.  If you
+carefully analyze this code and keep track of the significant digits, in the
+worst case (macros accurate to only 12 digits), the result will be a t-statistic
+calculated to 11 digits of accuracy rather than 15, and that is under the
+assumption that the constant being tested against is of the same order of
+magnitude (power 2) as the observed mean.  If the constant is not of the same
+order of magnitude, that will mitigate the accuracy difference.  If the constant
+differs by 4 orders of magnitude (power 2) or more from the calculated mean,
+there will be no difference in accuracy.
+</p>
+
+<p>
+We are done with scalars, but you will see me using them from now on.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="by"></a>6. Handling by() options</h3>
+
+<p>
+We have had significant problems dealing with <code class="cmd">tt_3</code>'s <code class="cmd">by()</code>
+option. In our first solution, we 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `by' if `touse'
+local min = r(min)
+local max = r(max)
+...
+summarize `varlist' if `by'==`min' &amp; `touse'
+...
+summarize `varlist' if `by'==`max' &amp; `touse'
+</code></pre>
+
+<p>
+and we discovered a problem.  This worked when <code class="cmd">`by'</code>
+contained integers, but if the <code class="cmd">`by'</code> variable contained
+numbers like 1.1 and 1.2 to mark the two groups, our code did not work.  We
+then resorted to scalars to make things work:
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+tempname min max 
+summarize `by' if `touse'
+scalar `min' = r(min)
+scalar `max' = r(max)
+...
+summarize `varlist' if `by'==`min' &amp; `touse'
+...
+summarize `varlist' if `by'==`max' &amp; `touse'
+</code></pre>
+
+<p>
+That solved the problem.   
+</p>
+
+<p>
+What if we used a string variable in the <code class="cmd">by()</code> option?
+In older versions of Stata, string variables were not allowed in 
+<code class="cmd">tabulate</code> and many other commands.  In  
+<!-- change version # -->version 10.0, we may still wish to exercise caution 
+and check that string variables do indeed work.
+</p>
+
+<p>
+If you have troubles with strings, you can use the following trick.  Make a
+new grouping variable that has a one-to-one correspondence with the original
+variable but takes on known values 1 for the first group, 2 for the second,
+and so on.  Here is how:
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+      tempvar group
+(1)   sort `touse' `by'
+(2)   by `touse' `by': generate `group' = 1 if _n==1 &amp; `touse'
+(3)   replace `group' = sum(`group') if `touse'
+</code></pre>
+
+
+<p>
+Do you see how this works?  Here I assume we have already created 
+<code class="cmd">`touse'</code>, a variable that takes on the value 1 if we 
+are to use the observation and 0 otherwise.  Let's sketch an example and the 
+result:
+</p>
+
+<pre class="codeblock">
+                                         (2)         (3)            FYI:
+  <code class="cmd">                                       gen       replace     by `touse' `by':</code>
+ <code class="cmd">`touse'   `by'         `touse'  `by'  `group' --&gt; `group'          _n</code>
+ --------------         -------------------------------------  ----------------
+    1   <span class="repl">alpha</span>            0   <span class="repl">alpha</span>     .          .               1
+    0   <span class="repl">beta</span>             0   <span class="repl">beta</span>      .          .               1
+    0   <span class="repl">gamma</span>  (1)       0   <span class="repl">gamma</span>     .          .               1
+    1   <span class="repl">beta</span>   <code class="cmd">sort</code>      0   <span class="repl">gamma</span>     .          .               2
+    0   <span class="repl">gamma</span>  -------&gt;  1   <span class="repl">alpha</span>     1          1               1
+    1   <span class="repl">alpha</span>            1   <span class="repl">alpha</span>     .          1               2
+    0   <span class="repl">alpha</span>            1   <span class="repl">alpha</span>     .          1               3
+    1   <span class="repl">beta</span>             1   <span class="repl">beta</span>      1          2               1
+    1   <span class="repl">alpha</span>            1   <span class="repl">beta</span>      .          2               2
+ --------------          -----------------------------------  ----------------
+</pre>
+
+<p>
+I'm being intentionally vague on what is in <code class="cmd">`by'</code>.
+Maybe the elements are integers, nonintegers, or strings, but in my original
+data there are three unique values I call <span class="repl">alpha</span>,
+<span class="repl">beta</span>, and <span class="repl">gamma</span>.  The <code
+class="cmd">sort</code> is easy enough to understand, and to understand Step 2,
+I have added the values (on the far right) of <code class="cmd">_n</code> when
+modified by <code class="cmd">by `touse' `by'</code>.
+</p>
+
+<p>
+<code class="cmd">`group'</code> is set equal to 1, where <code class="cmd">by
+`touse' `by': _n==1</code> and <code class="cmd">`touse'==1</code> also. This
+occurs in two places in my example.  The idea here is to place a 1 at the start
+of each group that we will be using.
+</p>
+
+<p>
+Having a 1 at the start of each group, if I sum the 1s, I have a 1 for the first
+group, 1+1=2 for the second, 1+1+1=3 for the third, and so on!
+</p>
+
+<p>
+This is a great trick.  How many groups do I have?  One way you could answer
+that is by typing <code class="cmd">summarize `group'</code> and then looking
+at the maximum, but I do not even have to do that.  I have 
+<code class="cmd">`group'[_N]</code> groups, which is to say, the value of 
+<code class="cmd">`group'</code> in the last observation.
+</p>
+
+<p>
+What are the groups numbered?  They are numbered 1, 2, ..., 
+<code class="cmd">`group'[_N]</code>.
+</p>
+
+<p>
+So, let's substitute this into <code class="cmd">tt_3</code>.  Right after
+marking the <code class="cmd">`touse'</code> sample, I substitute the following
+into my code: 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar group
+sort `touse' `by'
+quietly by `touse' `by': gen `group' = 1 if _n==1 &amp; `touse'
+quietly replace `group' = sum(`group') if `touse'
+</code></pre>
+
+<p>
+Then I verify that there are two groups:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if `group'[_N] != 2 { 
+     di as error "there must be two groups for this test"
+     exit 198
+}
+</code></pre>
+
+<p>
+and finally, for the ingredients into my formulas, I substitute
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' if `group'==1
+local n1 = r(N)
+local x1 = r(mean)
+local s1 = r(sd)
+local v1 = r(Var)
+local V1 = r(Var)/`n1'
+
+quietly summarize `varlist' if `group'==2
+local n2 = r(N)
+local x2 = r(mean)
+local s2 = r(sd)
+local v2 = r(Var)
+local V2 = r(Var)/`n2'
+</code></pre>
+
+<p>
+and I am done.  Notice that on my <code class="cmd">if</code> modifiers, I do
+not even have to bother with
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `varlist' if `group'==1 &amp; `touse'
+</code></pre>
+
+<p>
+because, by definition, <code class="cmd">`group'==1</code> implies that 
+<code class="cmd">`touse'</code> is also 1.
+</p>
+
+<p>
+I leave you to make these substitutions into <code class="cmd">mytt</code>
+yourself (see <a href="#exer1">Exercise 1</a>).
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3> <a name="sorting"></a>7. Sorting</h3>
+
+<p>
+Our code above includes a <code class="cmd">sort</code> command:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar group
+sort `touse' `by'
+quietly by `touse' `by': gen `group' = ...
+...
+</code></pre>
+
+<p>
+This code, appearing in a program, will change the sort order of the user's
+data.  That is not so bad, but it would be better if we could avoid that.  One
+way would be to avoid using <code class="cmd">sort</code>, but in this case,
+sorting the data is the key idea in counting groups.
+</p>
+
+<p>
+There is a way to use <code class="cmd">sort</code> and still leave the dataset
+just as you found it.  On the <code class="cmd">program</code> line, include
+the option <code class="cmd">sortpreserve</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_3, sortpreserve
+     ...
+     tempvar group 
+     sort `touse' `by'
+     quietly by `touse' `by': gen `group' = ...
+     ...
+end
+</code></pre>
+
+<p>
+When you specify the <code class="cmd">sortpreserve</code> option, you instruct
+Stata, before running the program, to hold on to the information describing the
+current order of the data and then, when execution of the program concludes, to
+put the data back into the original order.
+</p>
+
+<p>
+Thus, when in our program, we sort by <code class="cmd">`touse' `by'</code>,
+the order of the data is changed, and it remains changed until our program
+concludes, but then Stata instantly restores the original order, just as if we
+had never issued the <code class="cmd">sort `touse' `by'</code>.
+</p>
+
+<p>
+You should use <code class="cmd">sortpreserve</code> only when it is necessary.
+In terms of execution time, <code class="cmd">sortpreserve</code> is not free,
+but it is cheap, executing in about the time it takes Stata to execute a few
+<code class="cmd">generate</code> statements.  There is no faster way of
+dealing with the problem of changing the order of the user's data.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="lowlevel"></a>8. Low-level parsing</h3>
+
+<p>
+It was nice to take a break from parsing, but I want to get back to it.  We
+have already covered high-level parsing, which is to say, parsing phrases that
+look like Stata syntax.
+</p>
+
+<p>
+Occasionally, however, you may want to parse something that does not fit
+Stata's normal syntax of
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. <span class="repl">command varlist</span> if <span class="repl">exp</span> in <span class="repl">range</span> ...
+</code></pre>
+
+<p>
+Two commands can help you:  <code class="cmd">tokenize</code> and 
+<code class="cmd">gettoken</code>.  You should normally use 
+<code class="cmd">gettoken</code>, but I am going to teach you 
+<code class="cmd">tokenize</code> first because it is a little easier to 
+understand.
+</p>
+
+<p>
+The syntax of <code class="cmd">tokenize</code> is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize "<span class="repl">whatever</span>", parse("<span class="repl">parsing-characters</span>")
+</code></pre>
+
+<p>
+and <code class="cmd">tokenize</code> redefines <code class="cmd">`1'</code>, <code class="cmd">`2'</code>, ... to contain the
+"words" (tokens) of "<span class="repl">whatever</span>" based on the 
+separating characters "<span class="repl">parsing-characters</span>".  
+When you simply type
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize "<span class="repl">whatever</span>"
+</code></pre>
+
+<p>
+the results are the same as if you typed 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize "<span class="repl">whatever</span>", parse(" ")
+                     ^^^^^^^^^ 
+</code></pre>
+
+<p>
+and the contents of of "<span class="repl">whatever</span>" are broken into 
+words based on blanks.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "<span class="repl">whatever</span>" is "this", 
+        `1' contains "this"
+        `2' contains ""
+
+if "<span class="repl">whatever</span>" is "this is", 
+        `1' contains "this"
+        `2' contains "is" 
+        `3' contains ""
+
+if "<span class="repl">whatever</span>" is "  this           is  ",
+        `1' contains "this"
+        `2' contains "is" 
+        `3' contains ""
+        (i.e., the number of blanks does not matter)
+
+if "<span class="repl">whatever</span>" is "", 
+        `1' contains ""
+        (i.e., the list can be empty)
+</code></pre>
+
+<p>
+You are not restricted to breaking "<span class="repl">whatever</span>" into 
+tokens based on blanks.  For instance, consider
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize "<span class="repl">whatever</span>", parse("+")
+</code></pre>
+
+<p>
+In this case, blanks play no special role, and
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "<span class="repl">whatever</span>" is "2+3*6"
+        `1' contains "2"
+        `2' contains "+"
+        `3' contains "3*6"
+        `4' contains ""
+
+if "<span class="repl">whatever</span>" is "I use + for and"
+        `1' contains "I use "
+        `2' contains "+"
+        `3' contains "for and"
+        `4' contains ""
+</code></pre>
+
+<p>
+Moreover, you are not restricted to parsing on a single character.  Consider
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize "<span class="repl">whatever</span>", parse(" ()+,-")
+                    ^^^^^^^^^^^^^^^
+</code></pre>
+
+<p>
+Then, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "<span class="repl">whatever</span>" is "this is",
+        `1' contains "this"
+        `2' contains "is"
+        `3' contains ""
+
+if "<span class="repl">whatever</span>" is "2+3*6", 
+        `1' contains "2"
+        `2' contains "+"
+        `3' contains "3*6"
+
+if "<span class="repl">whatever</span>" is "2 + 3*6, or 20", 
+        `1' contains "2"
+        `2' contains "+"
+        `3' contains "3*6"
+        `4' contains ","
+        `5' contains "or"
+        `6' contains "20"
+</code></pre>
+
+<p>
+The idea is simple. The trick is putting it to use. As I mentioned earlier,
+prior to Stata 7, <code class="cmd">tokenize</code> was quite commonly used,
+but now with the new <code class="cmd">foreach</code> command, 
+<code class="cmd">tokenize</code> is not needed as much.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="programming"></a>9. Programming immediate commands</h3>
+
+<p>
+Let's design the immediate command version of <code class="cmd">mytt</code>,
+<code class="cmd">mytti</code>.  To remind you, immediate commands are commands
+that take numbers as arguments.  At this point, we are turning Stata into a big
+hand calculator, but that does not change the fact that the commands are
+useful.  Perhaps you are reading a paper, and someone reports that the mean is
+21.3 and the standard deviation 5.8 in a sample of 74. You might wish to
+perform a test, even though you do not have the author's underlying data.
+</p>
+
+<p>
+Two of the three statistical formulas lend themselves to calculation on summary
+statistics.  Let's design
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti <span class="repl">#n #m #s</span> = <span class="repl">#mu</span>
+</code></pre>
+
+<p>
+where # means that what is typed is a literal number. 
+<code class="cmd">mytti</code> tests whether a variable with <span class="repl">#n</span> observations, average value <span class="repl">#m</span>, and 
+observed standard deviation <span class="repl">#s</span> is drawn from a 
+population with mean <span class="repl">#mu</span>.  For instance, if the user 
+types 
+</p>
+
+<pre class="codeblock"> 
+<code class="cmd">mytti 74 21.3 5.8</code> = 20 
+</pre>
+
+<p>
+Stata will report the test of whether a variable with average 21.3, standard
+deviation 5.8, in a sample of 74 observations, could be from a distribution with
+mean 20.
+</p>
+
+<p>
+The second syntax for <code class="cmd">mytti</code> will be 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti <span class="repl">#n1 #m1 #s1</span> = <span class="repl">#n2 #m2#s2</span> [, unequal welch ]
+</code></pre>
+
+<p>
+It will report the test that the mean of one variable is equal to that of
+another in unmatched data.  If the <code class="cmd">unequal</code> option is
+specified, we will not assume the underlying variances are the same.
+</p>
+
+<p>
+Writing such a program should be easy for you because we have 
+<code class="cmd">mytt</code>; the only real difficulty is the parsing.  We will
+follow the same design as before; we will assume the existence of 
+<code class="cmd">tt_1i</code> and <code class="cmd">tt_3i</code>, each with 
+syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1i <span class="repl">#n #m #s</span> = <span class="repl">#mu</span>
+</code></pre>
+
+<p>
+and 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_3i <span class="repl">#n1 #m1 #s1</span> = <span class="repl">#n2 #m2 #s2</span> [, unequal welch ]
+</code></pre>
+
+<p>
+and work on writing <code class="cmd">mytti</code> in terms of these
+subroutines.
+</p>
+
+<p>
+I chose the labelings 1 and 3 for the subroutines to be compatible with our
+previous <code class="cmd">mytt</code> program; the new 
+<code class="cmd">tt_1i</code> corresponds to the old 
+<code class="cmd">tt_1</code>, and similarly, <code class="cmd">tt_3i</code> 
+corresponds to <code class="cmd">tt_3</code>.
+</p>
+
+<p>
+<code class="cmd">mytti</code>, like <code class="cmd">mytt</code>, will parse
+what is typed and send the problem along to the appropriate subroutine.  
+<code class="cmd">mytti</code> has a merged syntax diagram:
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+mytti <span class="repl"># # #</span> = <span class="repl">#</span> [<span class="repl"># #</span>] [, unequal welch ]
+</code></pre>
+
+
+<p>
+We are going to arrange for macros <code class="cmd">`1'</code>, 
+<code class="cmd">`2'</code>, ... to have a one-to-one correspondence to the 
+elements of our syntax diagrams, and then we will step through the macros one 
+at a time, verifying that they contain what they should.
+</p>
+
+<p>
+Given this, your first inclination may be to start 
+<code class="cmd">mytti</code> out with something like 
+</p>
+
+
+<pre class="codeblock"><code class="cmd">
+program mytti
+     tokenize "`0'"
+</code></pre>
+
+
+<p>
+and then continue along, referring to <code class="cmd">`1'</code>, 
+<code class="cmd">`2'</code>, <code class="cmd">`3'</code>, and so on.  My first
+comment is that opening with <code class="cmd">tokenize "`0'"</code> is
+unnecessary because Stata has already done that for you.  The initial
+definitions of <code class="cmd">`1'</code>, <code class="cmd">`2'</code>,
+<code class="cmd">`3'</code>, ... are set in just that way automatically.  Thus
+an equivalent opening is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytti
+</code></pre>
+
+<p>
+My comment does not, however, invalidate the idea.  Even if you included the
+unnecessary <code class="cmd">tokenize "`0'"</code>, it would waste only a
+little computer time.  The idea, however, will not work because the macros
+<code class="cmd">`1'</code>, <code class="cmd">`2'</code>, 
+<code class="cmd">`3'</code>, ...  may not correspond exactly to the elements 
+of our syntax diagram.
+</p>
+
+<p>
+To see this, pretend that the user types 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti 72 20 8=3</code>
+</pre>
+
+<p>
+Parsing on blank will leave <code>8=3</code> as one token.  Pretend that the
+user types 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti 52 19.8 4.7 = 22 24.8 6.6, unequal
+</code></pre>
+
+<p>
+Parsing on blank will leave the comma at the end of the 6.6; <code
+class="cmd">`7'</code> will contain <code class="cmd">6.6,</code>.
+</p>
+
+<p>
+The solution to this is to parse not only on blank but also on all the other
+characters that might separate one thing from another, which in our case are
+the equals sign and comma.  Our opening should be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytti
+     tokenize "`0'", parse(" =,")
+</code></pre>
+
+
+<p>
+and now there is a one to one correspondence between the tokens 
+<code class="cmd">`1'</code>, <code class="cmd">`2'</code>, ...  and the
+elements of our syntax diagram.  It is just a matter of going through the
+arguments one by one and verifying that they are what we expect (and, perhaps,
+assigning them more reasonable names).
+</p>
+
+<p>
+Let's begin by drawing a token&#8211;number diagram:
+</p>
+
+<pre class="codeblock">        
+        1     2      3   4   5
+<code class="cmd"> tt_1i <span class="repl">#n #m #s</span> = <span class="repl">#mu</span></code>
+
+<code class="cmd"> tt_3i <span class="repl">#n1 #m1 #s1</span> =<span class="repl"> #n2 #m2 #s2</span>[, unequal welch ]</code>
+        1     2     3    4   5     6     7   ...
+</pre>
+
+<p>
+I just put "..." when I came to the options; I'll show you how to deal with
+that when we get there.  Here is how I would start:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program mytti
+     tokenize "`0'", parse(" =,")
+     IsObs `1'
+     IsMean `2'
+     IsSd `3'
+</code></pre>
+
+<p>
+What is this?  This is me checking the syntax and engaging in one of my favorite
+tricks:  assuming the existence of a program I have not yet written.  If the
+user is going to specify the summary statistics, we have to worry that the user
+might not only get the syntax wrong but also specify unreasonable numbers.
+For instance, the number of observations should be an integer &#8805; 2.  Right
+now, I am assuming the existence of subroutines that will check that the
+arguments are reasonable for the given interpretation. I'll write those
+subroutines later.  So that you can see what I have in mind, I'll write
+<code class="cmd">IsObs</code> right now: 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program IsObs
+     args n 
+     confirm integer number `n'
+     if `n'&lt;2 { 
+          di as error "number of observations must be &gt;= 2"
+          exit 198
+     }
+end
+</code></pre>
+
+<p>
+If <code class="cmd">IsObs</code> successfully completes, its argument has the
+interpretation of a single integer number &#8805; 2.  It does this by
+</p>
+
+<pre class="codeblock">
+1)  <code class="cmd">args n</code>                         Taking the argument it receives and 
+                                   calling it <code class="cmd">`n'</code>
+
+2)  confirm integer number <code class="cmd">`n'</code>     Verifying that <code class="cmd">`n'</code> is an integer 
+                                   number
+
+3) if <code class="cmd">`n'</code> {                        Knowing the <code class="cmd">`n'</code> is an integer number,
+      di as error ...              and verifying that it is &gt;= 2.
+      exit 198
+   }
+</pre>
+
+<p>
+If <code class="cmd">IsObs</code> receives something that does not look like a number of
+observations (because it is not a number, not an integer, or too small),
+<code class="cmd">IsObs</code> will issue the appropriate error message and return with a nonzero
+return code.  That will stop my main program.
+</p>
+
+<p>
+Now that you see the way this works, let me go back to writing
+<code class="cmd">mytti</code>.  Remember, my token&#8211;number diagram is
+</p>
+
+<pre class="codeblock">
+       1     2      3   4   5
+<code class="cmd">tt_1i <span class="repl">#n #m #s</span> = <span class="repl">#mu</span></code>
+
+<code class="cmd">tt_3i <span class="repl">#n1 #m1 #s1</span> = <span class="repl">#n2 #m2 #s2</span> [, unequal welch ]</code>
+       1     2     3    4   5     6     7   ...
+</pre>
+
+<p>
+Not only am I going to verify that the arguments make sense, but I am also
+going to transfer control to the appropriate subroutine.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program mytti</code>
+     <code class="cmd">tokenize "`0'", parse(" =,")</code>
+     <code class="cmd">IsObs `1'</code>
+     <code class="cmd">IsMean `2'</code>
+     <code class="cmd">IsSd `3'</code>
+     <code class="cmd">IsEqual `4'</code>
+
+     <code class="cmd">capture IsMean `6'</code>
+     <code class="cmd">if _rc {          </code>       /* must be syntax 1 */
+          <code class="cmd">IsMean `5'</code>
+          <code class="cmd">IsNull `6'</code>
+          <code class="cmd">tt_1i `*'</code>
+     <code class="cmd">}</code>
+     <code class="cmd">else {                  </code>      /* must be syntax 3 */
+          <code class="cmd">IsObs `5'</code>
+          <code class="cmd">/* IsMean `6' already done */</code>
+          <code class="cmd">IsSd `7'</code>
+          <code class="cmd">tt_3i `*'</code>
+     <code class="cmd">}</code>
+<code class="cmd">end</code>
+</pre>
+
+<p>
+That was easy, although you may notice that I have not yet solved the option
+problem for syntax 3.  We'll get to that.
+</p>
+
+<p>
+Notice how I distinguished between syntaxes 1 and 3:  if token 
+<code class="cmd">`6'</code> existed and could fit the interpretation of a 
+mean, it must be syntax 3.  Otherwise, we tried to complete the interpretation 
+with syntax 1, declaring that <code class="cmd">`5'</code> must have the
+interpretation of a mean and <code class="cmd">`6'</code> must be empty.  
+<code class="cmd">IsNull</code> may be entirely too tricky for you, but it is 
+exactly what the name implies:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program IsNull
+     args nothing 
+     if "`nothing'" != "" { 
+          di as error "`nothing' found where nothing expected"
+          exit 198
+     }
+end
+</code></pre>
+
+<p>
+Now let's write <code class="cmd">tt_1i</code>, just so you can see how I would
+use these macros:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     args n xbar s eqsign mu
+
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+That's all.  I could have written this program as
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     local t = (`2'-`5')*sqrt(`1')/`3'
+     di "t(" `1'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+or even
+</p>
+
+<pre class="codeblock"><code class="cmd">                
+program tt_1i
+     di "t(" `1'-1 ") = " (`2'-`5')*sqrt(`1')/`3'
+end
+</code></pre>
+
+
+<p>
+but both variations are entirely unreadable.  It is too easy to make a mistake
+(Did I type <code class="cmd">`2'</code> when I meant 
+<code class="cmd">`3'</code>?).  Also, if I decide I want to change the order 
+of the arguments or the syntax, I have a nice table at the top of my program.  
+For instance, you might prefer to have the order of the arguments be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1i <span class="repl">#m #s #n</span> = <span class="repl">#mu</span>
+</code></pre>
+
+<p>
+rather than 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tt_1i <span class="repl">#n #m #s</span> = <span class="repl">#mu</span>
+</code></pre>
+
+<p>
+That is, perhaps you find it more natural to say the number of observations
+last rather than first.  In that case, you could take my original program and
+change one line:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1i
+     args xbar s n eqsign mu       /* changed */
+
+     local t = (`xbar'-`mu')*sqrt(`n')/`s'
+
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+Let's leave the arguments in the original order and consider 
+<code class="cmd">tt_3i</code>.  You may remember that we had not yet dealt 
+with the options.  Here's how:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program tt_3i</code>
+       /*    1  2  3    4    5  6  7 */
+     <code class="cmd">args n1 x1 s1 eqsign n2 x2 s2</code>
+
+     <code class="cmd">macro shift 7</code>
+     <code class="cmd">local 0 "`*'"</code>
+     <code class="cmd">syntax [, UNEqual Welch]</code>
+</pre>
+
+<p>
+That is, I perform a high-level parse (allowing only options) after unloading
+<code class="cmd">`1'</code>, <code class="cmd">`2'</code>, ..., 
+<code class="cmd">`7'</code> and shifting them away (so that 
+<code class="cmd">`*'</code> is what is left, which might be nothing and might 
+be a comma followed by options).  Since <code class="cmd">syntax</code> 
+parses what is in <code class="cmd">`0'</code>, I set 
+<code class="cmd">`0'</code> to contain <code class="cmd">`*'</code> 
+after the shift.
+</p>
+
+<p>
+You can complete <code class="cmd">mytti</code>; see <a href="#exer2">Exercise 2</a>.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="rewriting"></a>10. Rewriting mytt in terms of mytti</h3>
+
+<p>
+Assuming that we have <code class="cmd">mytti</code> up and working, we could
+rewrite <code class="cmd">mytt</code> in terms of 
+<code class="cmd">mytti</code> by stripping out the calculations in common and 
+simply calling <code class="cmd">mytti</code> in their place.  Let me show you 
+how we could do that, and then let's consider whether we should do it.
+</p>
+
+<p>
+In the last lecture, before we considered changing 
+<code class="cmd">mytt</code> to work in terms of scalars, subroutine 
+<code class="cmd">tt_1</code> read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varname =/exp [if] [in] 
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+end
+</code></pre>
+
+<p>
+We could remove the lines
+</p>
+
+<pre class="codeblock"><code class="cmd">
+          local t = (`xbar'-`exp')*sqrt(`n')/`s'
+     }
+     di "t(" `n'-1 ") = " `t'
+</code></pre>
+
+<p>
+and substitute
+</p>
+
+<pre class="codeblock"><code class="cmd">
+     }
+     mytti `n' `xbar' `s' = `exp'
+</code></pre>
+
+<p>
+so that we have
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_1
+     syntax varlist =/exp [if] [in] 
+     quietly {
+          quietly summarize `varlist' `if' `in'
+          local n = r(N)
+          local xbar = r(mean)
+          local s = r(sd)
+     }
+     mytti `n' `xbar' `s' = `exp'
+end
+</code></pre>
+
+<p>
+This did not save much code, but if we did the same thing to 
+<code class="cmd">tt_3</code> we would shorten the program considerably.
+</p>
+
+<p>
+Should we do this?  I think so. I prefer to say things once because, if I make
+a mistake, I have to go to only one place to fix it.  Suppose, for instance,
+that when I originally thought about testing a mean against a constant, I was
+confused and thought the t-statistic had n rather than n&minus;1 degrees of
+freedom.  When I discovered my error and fixed 
+<code>mytti.ado</code>, program
+<code class="cmd">mytt</code> fixed itself automatically.
+</p>
+
+<p>
+Both our <code class="cmd">mytt</code> and <code class="cmd">mytti</code>
+programs are incomplete right now. They report the t-statistic, but they do not
+yet report the significance level of the test.  If I rewrite <code
+class="cmd">mytt</code> in terms of <code class="cmd">mytti</code>, when I add
+the code to report the significance level to <code class="cmd">mytti</code>,
+<code class="cmd">mytt</code> will pick up the new feature with no more work.
+</p>
+
+<p>
+So, pretend you make the changes to <code class="cmd">tt_3</code> to call <code
+class="cmd">mytti</code> rather than make the calculation directly, which you
+will do in <a href="#exer3">Exercise3</a>.  Think carefully about how you will
+process the options.  The opening part of <code class="cmd">tt_3</code> reads
+
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_3
+     syntax varname [if] [in], BY(varname) [UNEqual Welch]
+</code></pre>
+
+<p>
+When you make the translation, you will note that options <code
+class="cmd">unequal</code> and <code class="cmd">welch</code> affect only the
+calculation and so play no role other than being passed along to <code
+class="cmd">mytti</code>.  You will delete the computation code and substitute
+in its place something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti `n1' `x1' `s1' = `n2' `x2' `s2', `welch' `equal'
+</code></pre>
+
+<p>
+A better rendition of this code would read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program tt_3
+     syntax varname [if] [in], BY(varname) [*]
+</code></pre>
+
+<p>
+and then the later statement reading
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mytti `n1' `x1' `s1' = `n2' `x2' `s2', `options'
+</code></pre>
+
+<p>
+Why?  In this way, <code class="cmd">mytt</code> will automatically pick up
+whatever options <code class="cmd">mytti</code> happens to allow.  Right now,
+the calculation can be made assuming equal or unequal variances and, if unequal
+variances are assumed, using either the Satterthwaite or the Welch formula.
+Assume that somebody named Smith develops another formula and you decide you
+want to include that as an option, too.  You will modify <code
+class="cmd">mytti</code> and allow the <code class="cmd">smith</code> option,
+and <code class="cmd">mytt</code> will automatically pick up the <code
+class="cmd">smith</code> option, too, because <code class="cmd">tt_3</code>
+allows any option.
+</p>
+
+<p>
+What happens if the user specifies an option that is not allowed?  <code
+class="cmd">tt_3</code> will not complain because it allows any option, but it
+will pass the option along to <code class="cmd">mytti</code>, which will
+complain.  The user will then see an appropriate error message.
+</p>
+
+<p>
+In general, when one program is implemented in terms of another and allows the
+options of the other, you should allow any option and then pass along whatever
+options are specified to the other program.  This way, you can add options to
+one program, and they will propagate across your other programs automatically.
+</p>
+
+<table class="technote">
+
+<tr>
+<td>
+
+<h4>Aside:</h4>  
+<p>
+You will have to use some judgment to decide whether to follow this advice.
+Here's the problem:  Imagine that A is implemented in terms of B, and A is to
+allow all the options of B; however, imagine that A must do considerable
+computation to get results suitable for passing along to B.  If the user
+specifies an incorrect option, the error will not be detected until after A has
+made the initial calculations.  That is okay, but the user will have to wait a
+while before seeing the error message <code>option ... not allowed</code>.
+This can irritate users, and if you irritate users often enough, they stop
+being users.
+</p>
+
+<p>
+So, I follow the advice I just gave but then experiment with specifying
+incorrect options.  If the wait is too long, I go back to coding the options
+explicitly at the top of A.
+</p></td>
+</tr>
+
+</table>
+
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="parsing"></a>11. Parsing new variables</h3>
+
+<p>
+There is one final topic we must cover to turn you into true parsing experts.
+It is not difficult, and it is almost a footnote.  Occasionally, you may want
+to write programs that create new variables.  The standard Stata syntax for
+such commands is
+</p>
+
+<pre class="codeblock">
+. <span class="repl">command</span> newvar ...
+</pre>
+
+<p>
+and, as an example, you might think of <code class="cmd">predict</code>.  You
+parse such commands by
+</p>
+
+<pre class="codeblock">
+syntax newvarname ...
+</pre>
+
+<p>
+or, in general, 
+</p>
+
+<pre class="codeblock">
+syntax newvarlist ...       or       syntax [newvarlist] ....
+</pre>
+
+<p>
+This works just like parsing a varlist of previously existing variables; after
+<code class="cmd">syntax</code>, <code class="cmd">`varlist'</code> contains
+the name of the new variable(s).  In the case of new variables, however, <code
+class="cmd">syntax</code> also creates <code class="cmd">`typlist'</code>
+containing the storage types (float, double, ...) of the new variables.
+</p>
+
+<p>
+Try the following little program:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program toy
+     syntax newvarname
+     display "varlist now contains `varlist'"
+     display "typlist now contains `typlist'"
+end
+</code></pre>
+
+<p>
+I'm not giving you a cutout for this program because it's so short that you can
+just type it in.  So, type it and begin trying our toy program by making
+intentional mistakes:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. toy</code>
+varlist required
+r(100);
+
+<code class="cmd">. toy 12</code>
+12 invalid name
+r(198);
+
+<code class="cmd">. toy notavariablenamebecauseitistoolong</code>
+notavariablenamebecauseitistoolong invalid varname
+r(198);
+
+<code class="cmd">. toy mpg</code>
+mpg already defined
+</pre>
+
+<p>
+Now let's try using <code class="cmd">toy</code> correctly:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. toy new</code>
+varlist now contains new
+typlist now contains float
+</pre>
+
+<p>
+The <code>varlist now contains new</code> message should reassure you that parsing this
+works as I said it would. The name of the new variable is placed into <code
+class="cmd">`varlist'</code> because our program actually reads <code
+class="cmd">display "varlist now contains `varlist'"</code>.
+</p>
+
+<p>
+Now, try the following:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. toy double new2</code>
+varlist now contains new2
+typlist now contains double
+</pre>
+
+<p>
+This is not an error because Stata commands allow the user to specify the type
+of the variable.  If a command takes a varlist consisting of new variables, the
+user can specify the types.
+</p>
+
+<p>
+Pay close attention to what our program said:  
+<code>varlist now contains new2</code>.  It
+did not say <code>varlist now contains double new2</code>, so evidently, <code
+class="cmd">`varlist'</code> still contains just the new variable's name.
+</p>
+
+<p>
+<code class="cmd">syntax</code> stores in <code class="cmd">`typlist'</code>
+the type of the variable.  When the user did not specify a type (as when the we
+typed <code class="cmd">toy new</code>), <code class="cmd">`typlist'</code>
+contained <code class="cmd">float</code> (just as if we had typed <code
+class="cmd">toy float new</code>).
+</p>
+
+<p>
+So, let's write a real program.  Earlier in this lecture, we discussed how to
+make a grouping variable that took on values 1, 2, ..., corresponding to some
+other grouping variable the user specified.  The user might specify a string
+variable or a variable taking on odd values, and we wanted a corresponding
+variable that would take values 1, 2, ..., because that was easier for us to
+work with.  In the context of our <code class="cmd">mytt</code> program, we
+imagined adding the lines
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar group
+sort `touse' `by'
+quietly by `touse' `by': gen `group' = 1 if _n==1 &amp; `touse'
+quietly replace `group' = sum(`group') if `touse'
+</code></pre>
+
+<p>
+and thereafter calculating <code class="cmd">if `group'==1</code> and <code class="cmd">if `group'==2</code>.
+</p>
+
+<p>
+This all arose in the context of processing a <code class="cmd">by()</code>
+option, and this problem is bound to arise in future programs we write, so
+let's make it easier for us to code such programs.  Let's create a utility
+program,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+group <span class="repl">newvar</span> = <span class="repl">anothervar</span> [if exp] [in range]
+</code></pre>
+
+<p>
+to create the grouping variable according to the sort-mark-and-sum logic.  If
+we had such a program, our <code class="cmd">mytt</code> program might simply read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar group 
+group `group' = `by' if `touse'
+</code></pre>
+
+<p>
+(Of course, having created <code class="cmd">`group'</code>, we will still
+later calculate <code class="cmd">if `group'==1</code> and <code class="cmd">if
+`group'==2</code>.)
+</p>
+
+<p>
+Here is my first draft of <code class="cmd">group</code>:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec3/group.ado">group.ado (1st draft)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program group
+     syntax newvarname =/exp [if] [in]
+
+     tempvar touse
+     mark `touse' `if' `in'
+
+     sort `touse' `exp'
+     quietly {
+          by `touse' `exp': gen `typlist' `varlist' = 1 if _n==1 &amp; `touse'
+          replace `varlist' = sum(`varlist') if `touse'
+     }
+end
+</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+I have labeled this program "1st draft", which suggests that  a second draft is
+coming, but it works, and I suggest that you try to use it interactively.  The
+subsequent improvement will be very minor.
+</p>
+
+<p>
+In the automobile data, variable headroom takes on eight unique values:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. tab headroom</code>
+    Headroom|
+       (in.)|      Freq.     Percent        Cum.
+------------+-----------------------------------
+        1.5 |          4        5.41        5.41
+        2.0 |         13       17.57       22.97
+        2.5 |         14       18.92       41.89
+        3.0 |         13       17.57       59.46
+        3.5 |         15       20.27       79.73
+        4.0 |         10       13.51       93.24
+        4.5 |          4        5.41       98.65
+        5.0 |          1        1.35      100.00
+------------+-----------------------------------
+      Total |         74      100.00
+</pre>
+
+<p>
+Try typing 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. group order = headroom </code>
+</pre>
+
+<p>
+If you then 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. tabulate order</code>
+</pre>
+
+<p>
+you will find that variable order takes on values 1, 2, ..., 8.  If you 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. tabulate order headroom</code>
+</pre>
+
+<p>
+you will discover that order=1 corresponds to headroom==1.5, order=2 to 
+headroom==2.0, and so on.
+</p>
+
+<p>
+<code class="cmd">group</code> works, and now let's understand exactly how it
+works.  Ignore the details of the calculation, but notice that the calculation
+is stated in terms of <code class="cmd">`varlist'</code>, the variable to be
+created.
+</p>
+
+<p>
+If you interactively play with <code class="cmd">group</code> long enough, you
+will discover that it has one unpleasant feature.  If you press <span class="key">Break</span>, you will see
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. group myvar = ...</code>
+--Break--
+r(1);
+</pre>
+
+<p>
+just as you should.  The problem is that myvar might exist and be only
+partially filled in.  That would happen if you pressed <span
+class="key">Break</span> right after the <code class="cmd">generate `typlist'
+`varlist'</code> but before the program completed.
+</p>
+
+<p>
+A better-behaved program would <code class="cmd">drop myvar</code> if the user
+pressed <span class="key">Break</span>.
+
+</p>
+
+<p>
+I am going to show you how to do that, but first I want to emphasize that this
+is the only case in which you, the programmer, must explicitly worry about
+<span class="key">Break</span>.  In all other situations&#8212;assuming you use <code
+class="cmd">tempvar</code>, <code class="cmd">tempname</code>, and <code
+class="cmd">tempfile</code> to obtain names&#8212;Stata's automatic cleanup
+action is all that is necessary.  The problem here is that <code
+class="cmd">group</code>, when used interactively, is creating a permanent
+variable, and so Stata does not know to drop it if the program ends early.
+</p>
+
+<p>
+The solution is to use a temporary variable:
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec3/group2.ado">group.ado (2nd draft)</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout">
+<code class="cmd">program group</code>
+     <code class="cmd">syntax newvarname =/exp [if] [in]</code>
+
+     <code class="cmd">tempvar touse</code>
+     <code class="cmd">mark `touse' `if' `in'</code>
+
+     <code class="cmd">sort `touse' `exp'</code>
+     <code class="cmd">tempvar tmp                 </code>    /* &lt;-- new */
+     <code class="cmd">quietly {</code>
+          <code class="cmd">by `touse' `exp': gen `typlist' `tmp' = 1 if _n==1 &amp; `touse'</code>
+          <code class="cmd">replace `tmp' = sum(`tmp') if `touse'</code>
+     <code class="cmd">}</code>
+     <code class="cmd">rename `tmp' `varlist'</code>          /* &lt;-- new */
+<code class="cmd">end</code>
+</pre></td> 
+</tr> 
+
+</table>
+
+
+<p>
+Do you see what I did?  I created a new, temporary variable, and then at the
+end of the program, I changed the name of the temporary variable to the name
+the user originally wanted.  This way, if the user presses <span class="key">Break</span> while <code
+class="cmd">group</code> is executing, Stata will know to eliminate the
+incompletely-filled-in variable I am creating.
+</p>
+
+<p>
+Also, note that I was careful to create the new temporary variable to be of
+storage type <code class="cmd">`typlist'</code>, just as I would have created
+the real variable.
+</p>
+
+<p>
+I implemented <code class="cmd">group</code> because I wanted to show you how
+to write a real program that created a new variable.  I did not want it to be
+too artificial, and I did not want it to be too long.  The important thing
+above is the parsing, not the calculation steps.
+</p>
+
+<p>
+So, is program <code class="cmd">group</code> really useful?  You can decide
+for yourself.  It takes three lines in a program for me to process the <code
+class="cmd">by()</code> option, and personally, I just include those three
+lines in my program.  I do that because I often need to refer to <code
+class="cmd">`group'[_N]</code> to know how many groups there are, and I find
+the code more transparent when the lines that created <code
+class="cmd">`group'</code> are right there before the reference to <code
+class="cmd">`group'[_N]</code>.  This is purely a matter of style.  There is no
+right answer.  If you like <code class="cmd">group</code>, use it.
+</p>
+
+<p>
+If you like <code class="cmd">group</code>, Stata already has such a command:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+egen <span class="repl">newvar</span> = group(<span class="repl">varlist</span>) [if exp] [in range]
+</code></pre>
+
+<p>
+Whereas I put the three lines in my program, I know others who prefer using
+<code class="cmd">egen</code>.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="exercises"></a>12. Exercises</h3>
+
+<ol>
+<li>
+<a name="exer1"></a>
+<p>
+Make the changes to <code class="cmd">mytt</code> to use the new way of dealing
+with <code class="cmd">by()</code> discussed under <a href="nc152-l3.html#by">Handling <code
+class="cmd">by()</code> options</a>.  A copy of the <code
+class="cmd">mytt.ado</code> file, as it now stands, is listed below the
+exercises, at the end of the lecture.</li>
+
+<li><a name="exer2"></a>
+<p>
+Write <code class="cmd">mytti</code>, the immediate
+command, starting with the current version of <code
+class="cmd">mytt</code>.
+</p>
+</li>
+
+<li><a name="exer3"></a>
+<p>
+Rewrite <code class="cmd">mytt</code>, as modified in
+<a href="#exer1">Exercise 1</a>, to use <code class="cmd">mytti</code> to make
+the calculations.  Call this new program <code
+class="cmd">mytt2.ado</code>.
+</p>
+</li>
+
+<li><a name="exer4"></a>
+<p>
+Researchers often use linear regression to estimate models of the form
+</p>
+
+<pre class="codeblock">
+ln y = a + Xb + u 
+</pre>
+
+<p>
+As an example, you might use the automobile data and 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. generate lnp = ln(price)
+
+. regress lnp weight foreign
+</code></pre>
+
+<p>
+A researcher interested in the predicted value of price might
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. predict lnphat
+
+. gen phat = exp(lnphat)
+</code></pre>
+
+<p>
+That, however, is not the prediction of the mean of price conditional on
+the regressors.  It is a prediction of the median.  The prediction of the
+mean is given by the formula
+</p>
+
+<pre class="codeblock">
+E(price) = exp(lnphat)*exp(s2/2)
+</pre>
+
+<p>
+where s2 is the estimated variance of u (the square of the reported root
+mean square error of the regression).  Write a program
+</p>
+
+<pre class="codeblock"><code class="cmd">
+predexp <span class="repl">newvar</span> [if <span class="repl">exp</span>] [in <span class="repl">range</span>]
+</code></pre>
+
+<p>
+that, used after <code class="cmd">regress</code>, will predict this value.
+(Note: <code class="cmd">regress</code> saves s2; see 
+<!-- change manual--><span class="manual_entry">[R] regress</span>.)
+</p>
+</li>
+</ol>
+
+<div class="section_div"></div>
+<p> 
+Below is the <code class="cmd">mytt.ado</code> file that we left off with in <a
+href="nc152-l1.html">Lecture 1</a>.
+</p>
+
+<table class="standard">
+
+<tr>
+<th>ADO-FILE: <!-- change version # --><a href="../../courses/nc152-10/lec3/mytt.ado">mytt.ado (L.1 completed version)</a>
+</th> 
+</tr>
+
+<tr>
+<td><pre class="cutout">
+<code class="cmd">program mytt</code>
+        <code class="cmd">syntax varname [=/exp] [if] [in] [, BY(varname) UNEqual Welch ]</code>
+
+        <code class="cmd">if `"`exp'"'=="" {</code>
+                <code class="cmd">tt_3 `0'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {</code>
+                <code class="cmd">capture confirm number `exp'</code>
+                <code class="cmd">if _rc==0 {</code>
+                        <code class="cmd">tt_1 `0'</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                        <code class="cmd">tt_2 `0'</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_1</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+        <code class="cmd">quietly {</code>
+                <code class="cmd">summarize `varlist' `if' `in'</code>
+                <code class="cmd">local n = r(N)</code>
+                <code class="cmd">local xbar = r(mean)</code>
+                <code class="cmd">local s = r(sd)</code>
+                <code class="cmd">local t = (`xbar'-`exp')*sqrt(`n')/`s'</code>
+        <code class="cmd">}</code>
+        <code class="cmd">di "t(" `n'-1 ") = " `t'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_2</code>
+        <code class="cmd">syntax varname =/exp [if] [in]</code>
+
+        <code class="cmd">tempvar diff</code>
+        <code class="cmd">quietly gen `diff' = `varlist' - (`exp') `if' `in'</code>
+        <code class="cmd">tt_1 `diff' = 0 `if' `in'</code>
+<code class="cmd">end</code>
+
+<code class="cmd">program tt_3</code>
+        <code class="cmd">syntax varname [if] [in], BY(varname) [UNEqual Welch]</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Mark the             */
+                                        /* to-use subsample     */
+       <code class="cmd"> marksample touse</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Verify `by' divides  */
+                                        /* data into 2 groups   */
+      <code class="cmd">  quietly tabulate `by' if `touse'</code>
+        <code class="cmd">if r(r)!=2 {</code>
+                <code class="cmd">di as error "`by' must take on two values"</code>
+                <code class="cmd">exit 198</code>
+        <code class="cmd">}</code>
+
+        /* ---------------------------------------------------- */
+                                        /* Verify <code class="cmd">welch</code> and  */
+                                        /* set <code class="cmd">unequal</code>         */
+	<code class="cmd">if "`welch'"!=""  {
+        	local unequal "unequal"
+	}</code>
+
+        /* ---------------------------------------------------- */
+                                        /* create calculation   */
+                                        /* ingredients          */
+        <code class="cmd">quietly summarize `by' if `touse'</code>
+        <code class="cmd">local min = r(min)</code>
+        <code class="cmd">local max = r(max)</code>
+
+        <code class="cmd">quietly summarize `varlist' if `by'==`min' &amp; `touse'</code>
+        <code class="cmd">local n1 = r(N)</code>
+        <code class="cmd">local x1 = r(mean)</code>
+        <code class="cmd">local s1 = r(sd)</code>
+        <code class="cmd">local v1 = r(Var)</code>
+        <code class="cmd">local V1 = r(Var)/`n1'</code>
+
+        <code class="cmd">quietly summarize `varlist' if `by'==`max' &amp; `touse'</code>
+        <code class="cmd">local n2 = r(N)</code>
+        <code class="cmd">local x2 = r(mean)</code>
+        <code class="cmd">local s2 = r(sd)</code>
+        <code class="cmd">local v2 = r(Var)</code>
+        <code class="cmd">local V2 = r(Var)/`n2'</code>
+
+
+        /* ---------------------------------------------------- */
+                                        /* Perform calculation  */
+
+     <code class="cmd">   if "`unequal'"=="" {  </code>          /* ... equal Var case   */
+     <code class="cmd">           local d = `n1'+`n2'-2</code>
+                <code class="cmd">local t = (`x1'-`x2') / (                 ///</code>
+                        <code class="cmd">sqrt(((`n1'-1)*`v1' +          ///</code>
+                              <code class="cmd">(`n2'-1)*`v2')/`d') *    ///</code>
+                          <code class="cmd">sqrt(1/`n1'+1/`n2')          ///</code>
+                        <code class="cmd">)</code>
+        <code class="cmd">}</code>
+        <code class="cmd">else {     </code>                     /* ... unequal Var case */
+        <code class="cmd">        local t = (`x1'-`x2')/sqrt(`V1' + `V2')</code>
+                <code class="cmd">if "`welch'"=="" {</code>
+                        <code class="cmd">local d = (`V1'+`V2')^2 / (       ///</code>
+                          <code class="cmd">`V1'^2/(`n1'-1) + `V2'^2/(`n2'-1) ///</code>
+                          <code class="cmd">)</code>
+                <code class="cmd">}</code>
+                <code class="cmd">else {</code>
+                        <code class="cmd">local d = -2 + (`V1'+`V2')^2 /   ///</code>
+                            <code class="cmd">( `V1'^2/(`n1'+1) + `V2'^2/(`n2'+1) )</code>
+                <code class="cmd">}</code>
+        <code class="cmd">}</code>
+        /* ---------------------------------------------------- */
+                                        /* display result       */
+<code class="cmd">        di "t(" `d' ") = " `t'</code>
+<code class="cmd">end</code>
+</pre></td> 
+</tr> 
+
+</table>
+
+<p class="right"><a href="#toc">Back to Table of Contents</a></p>
+
+<!-- exercise NetCourseNow -->
+
+<div class="section_div"></div>
+
+
+<div class="center"><h2>End of Lecture 3</h2></div>
+
+<div class="section_div"></div>
+<div class="center">
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td class="nc4lec" colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp
+ LP.
+</a></p>
+
+</body>
+</html>

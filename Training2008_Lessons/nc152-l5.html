@@ -1,0 +1,3521 @@
+<!-- auth2 NetCourseNow -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 
+"http://www.w3.org/TR/html4/loose.dtd">
+<!-- Last updated 08/13/07 tjs -->
+<html>
+
+<head>
+<title>NetCourse&nbsp;152&#8212;Lecture 5</title>
+<link rel="stylesheet" href="../netcourse.css" type="text/css">
+</head>
+
+<body>
+
+<div class="section_div"></div>
+<div class="center">
+<table class="ncbanner">
+<tr>
+<td><img src="../images/lecture5v.gif" alt="Lecture 5"></td>
+<td><img src="../images/nc152banner.gif" alt="Banner"></td>
+</tr>
+</table>
+</div>
+<div class="section_div"></div>
+
+<h2><a name="toc"></a>Lecture 5 - Table of Contents</h2>
+
+<div class="main_section"><a href="#restrict">1. Restricting commands to the relevant subsample</a></div>
+<div class="main_section"><a href="#which">2. Which is better: marksample or mark?</a></div>
+<div class="main_section"><a href="#varlist">3. Programming by varlist</a></div>
+<div class="main_section"><a href="#lists">4. Lists</a></div>
+<div class="main_section"><a href="#creating">5. Creating lists</a></div>
+<div class="main_section"><a href="#stepping">6. Stepping through list elements one by one</a></div>
+<div class="main_section"><a href="#deleting">7. Deleting elements from lists</a></div>
+<div class="main_section"><a href="#adding">8. Adding elements to lists</a></div>
+<div class="main_section"><a href="#macro">9. Macro vectors</a></div>
+<div class="main_section"><a href="#parsing">10. Parsing revisited: gettoken</a></div>
+<div class="main_section"><a href="#quietly">11. Quietly blocks</a></div>
+<div class="main_section"><a href="#the">12. The relation between capture and quietly</a></div>
+<div class="main_section"><a href="#capture">13. Capture blocks</a></div>
+<div class="main_section"><a href="#naming">14.Naming conventions </a></div>
+<div class="main_section"><a href="#program">15. Program naming convention</a></div>
+<div class="main_section"><a href="#calling">16. Calling convention</a></div>
+<div class="main_section"><a href="#version">17. Version control</a></div>
+<div class="main_section"><a href="#conclusion">18. Conclusion</a></div>
+<div class="main_section"><a href="#exercises">19. Exercises</a></div>
+
+<div class="section_div"></div>
+
+<h3><a name="restrict"></a>1. Restricting commands to the relevant subsample</h3>
+
+<p>
+I have mentioned the <code class="cmd">preserve</code> and <code
+class="cmd">restore</code> commands in both NC-151 and NC-152 before, but now I
+want to emphasize their use to you.
+</p>
+
+<p>
+Most Stata commands involve restricting operations to the relevant subsample
+of the data.  The relevant subsample may be explicitly specified by the user,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. regress mpg weight if foreign
+</code></pre>
+
+<p>
+and may also include implied restrictions:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. regress mpg weight if foreign</code>
+          ----------
+              |
+              +--&gt; meaning mpg&lt;. and weight&lt;.
+</pre>
+
+
+<p>
+We obtain the explicit restrictions by parsing
+</p>
+
+<pre class="codeblock">
+...
+<code class="cmd">syntax ... [if] [in]</code> ...
+...
+</pre>
+
+
+<p>
+and the easiest way to deal with the explicit restrictions thereafter is to
+create a marker variable containing 1 if we are to use the observation and 0
+otherwise:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar touse
+mark `touse' `if' `in'
+</code></pre>
+
+<p>
+Then, later in our code, we just code <code class="cmd">if `touse'</code> at
+the end of any data-processing commands.
+</p>
+
+<p>
+I do not want <code class="cmd">mark</code> to be a mystery to you.  <code
+class="cmd">mark `touse' `if' `in'</code> has the same effect as if you coded
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gen byte `touse' = 0 
+replace `touse' = 1 `if' `in'
+</code></pre>
+
+<p>
+The only difference is that <code class="cmd">mark `touse' `if' `in'</code> executes more
+quickly.
+</p>
+
+<p>
+To handle the implied restrictions, we reset <code class="cmd">`touse'</code>
+to contain 0 in the appropriate places.  If we were writing <code
+class="cmd">regress</code> and wanted to exclude observations with variables
+with missing values, we could loop across the variables in <code
+class="cmd">`varlist'</code> and reset <code class="cmd">`touse'</code> to
+contain 0 wherever any of the variables contained missing values.  We could
+write the following code:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+foreach i of local varlist {
+     replace `touse' = 0 if `i'==.
+}
+</code></pre>
+
+<p>
+Coding 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+markout `touse' `varlist'
+</code></pre>
+
+
+<p>
+has the same effect, but is faster, both to code and to execute.  Thus if you
+want to honor <code class="cmd">if</code> and <code class="cmd">in</code> and
+if you want to exclude all observations of the variables specified with missing
+values, you can code
+</p>
+
+<pre class="codeblock">
+...
+<code class="cmd">syntax ... [if] [in]</code> ...
+<code class="cmd">tempvar touse </code>
+<code class="cmd">mark `touse' `if' `in'</code>
+<code class="cmd">markout `touse' `varlist'</code>
+...
+</pre>
+
+<p>
+or, you can code something even shorter:
+</p>
+
+<pre class="codeblock">
+...
+<code class="cmd">syntax ... [if] [in] </code>...
+<code class="cmd">marksample touse</code>
+...
+</pre>
+
+<p>
+<code class="cmd">marksample touse</code> is equivalent to <code
+class="cmd">tempvar touse</code> followed by <code class="cmd">mark `touse'
+`if' `in'</code> followed by <code class="cmd">markout `touse'
+`varlist'</code>.
+</p>
+
+<p>
+<code class="cmd">mark</code>, <code class="cmd">markout</code>, and <code
+class="cmd">marksample</code> are sufficient for most cases, especially once
+you realize that you can use <code class="cmd">markout</code> repeatedly.  For
+instance, say that you want to exclude observations with missing values, honor
+the <code class="cmd">if</code> and <code class="cmd">in</code>, and that there
+is one other variable, say, id, that also must not be missing.  You could code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax</code> ... <code class="cmd">[if] [in] </code>...
+<code class="cmd">marksample touse</code>
+<code class="cmd">markout `touse' id</code>
+</pre>
+
+
+<p>
+That you can use <code class="cmd">markout</code> repeatedly should not
+surprise you because <code class="cmd">markout</code> really does nothing more
+than <code class="cmd">replace</code> a mark variable with 0 when variables in
+varlist contain missing values. 
+</p>
+
+<p>
+<code class="cmd">mark</code> and <code class="cmd">markout</code> may be
+sufficient for your purposes, but in some cases, you may need to imply other
+restrictions as well or instead.  There is nothing stopping you from
+programming
+</p>
+
+<pre class="codeblock">
+<code class="cmd">replace `touse' = 0 if </code>...
+</pre>
+
+<p>
+Anyway, by the time you complete all of this, you will have a variable <code
+class="cmd">`touse'</code> that contains 1 if you are to use the observation
+and 0 otherwise.  In summary, the outline I recommend is
+</p>
+
+<pre class="codeblock">
+...
+<code class="cmd">syntax </code>... <code class="cmd">[if] [in]</code> ...
+<code class="cmd">marksample touse</code>
+<code class="cmd">markout `touse'</code> ...               /* if that is relevant */
+<code class="cmd">replace `touse' = 0 if </code>...        /* if that is relevant */
+...
+</pre>
+
+<p>
+Sometimes I do not bother to do this; the code is short enough that I can see
+that I am restricting to the relevant sample by just tacking <code
+class="cmd">`if' `in'</code> onto the end of the relevant commands.  That is
+fine, but be careful.  If you were writing <code class="cmd">regress</code>,
+there might come a point in your code where you would need to obtain the mean
+of the dependent variable, and you might be tempted to code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+summarize `depvar' `if' `in' 
+local meandep = r(mean)
+</code></pre>
+
+<p>
+That would not be right.  Later in the code, the regression will be estimated
+over the subsample of data for which none of the independent variables is
+missing, and the mean you just calculated did not impose that restriction.  The
+only safe way to proceed in this more complicated code is to include the code
+to create <code class="cmd">`touse'</code>,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+marksample touse 
+</code></pre>
+
+<p>
+and then
+</p>
+
+<pre class="codeblock"><code class="cmd"> 
+summarize `depvar' if `touse'
+local meandep = r(mean) 
+</code></pre>
+
+<p>
+Tacking <code class="cmd">if `touse'</code> onto the end of commands does not
+seem difficult, but there are programs in which it is, such as those that need
+to sort the data due to a <code class="cmd">by()</code> option.
+</p>
+
+<p>
+Say that in some piece of code you are writing, you need to obtain the mean of
+<code class="cmd">`depvar'</code> by the <code class="cmd">`by'</code> variables.  You might code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar mean
+sort `by'
+by `by': gen `mean' = sum(`depvar')/sum(`depvar'&lt;.) if `touse'
+by `by': replace `mean' = `mean'[_N] if `touse'
+</code></pre>
+
+<p>
+That will not work.  The <code class="cmd">gen `mean'</code> statement is okay,
+but it may not produce a mean in the last (_N) observation because the _Nth
+observation might have <code class="cmd">`touse'==0</code> (meaning it is
+excluded).  The right way to code this is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar mean
+sort `touse' `by'
+by `touse' `by': gen `mean'=sum(`depvar')/sum(`depvar'&lt;.) if `touse'
+by `touse' `by': replace `mean' = `mean'[_N] if `touse'
+</code></pre>
+
+<p>
+That is, rather than forming by groups, I form two sets of by groups, one for
+<code class="cmd">`touse'==0</code> and another for <code class="cmd">`touse'==1</code>, and then I just work on the
+<code class="cmd">`touse'==1</code> group.
+</p>
+
+<p>
+In extremely complicated programs, restricting the calculation to the relevant
+subsample can get even more difficult.  When it becomes too complicated for you
+(and it quickly becomes too complicated for me), there is a trick that can help:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+preserve
+quietly keep if `touse'
+</code></pre>
+
+<p>
+Use those two commands, and afterwards, you can forget about restricting to
+the relevant subsample because the only data in memory make up the relevant
+subsample.  When your command ends&#8212;no matter how&#8212;Stata will
+automatically restore the original data just as if the data were never 
+disturbed from memory.
+</p>
+
+<p>
+<code class="cmd">preserve</code> is a great solution, but it takes time to
+execute because it literally makes a copy of the dataset on disk, and later,
+restores the data literally reading the copy back into memory.  Do not let this
+frighten you away from using <code class="cmd">preserve</code>&#8212;Stata is
+faster at disk operations than most software&#8212;but use <code
+class="cmd">preserve</code> only when you really need it.
+</p>
+
+<p>
+There is another command, <code class="cmd">restore</code>, for use along with
+<code class="cmd">preserve</code>, but it is used only rarely.  When you code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+restore
+</code></pre>
+
+<p>
+the previously preserved data are reloaded, and the <code
+class="cmd">preserve</code> is canceled, which is to say, the disk file
+containing the copy of the original data are erased.
+</p>
+
+<p>
+It is not your responsibility to code <code class="cmd">restore</code>; the
+restoration is automatic, but if you want the entire dataset back early because
+of something you are doing, you can invoke <code class="cmd">restore</code> for
+yourself.
+</p>
+
+<p>
+A variation on <code class="cmd">restore</code> is 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">restore, preserve</code>
+</pre>
+
+<p>
+<code class="cmd">restore, preserve</code> does the same thing as <code
+class="cmd">restore</code>, but it does not cancel the automatic restore when
+your program ends; the disk file containing the copy of the original data are
+not erased yet.  <code class="cmd">restore, preserve</code> has the same effect
+as coding <code class="cmd">restore</code> followed by <code
+class="cmd">preserve</code>,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+restore
+preserve
+</code></pre>
+
+<p>
+but it is faster.  If you gave the two commands in sequence, the data would be
+reloaded and the disk file erased, and then the data would be copied to a new
+disk file.  The single <code class="cmd">restore, preserve</code>, on the other
+hand, reloads the data and stops right there, leaving the existing disk file
+behind.
+</p>
+
+<p>
+A final version of <code class="cmd">restore</code> is 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+restore, not
+</code></pre>
+
+<p>
+which does nothing but cancel the automatic restoration.  Imagine that you are
+writing a program that drastically rearranges the data in memory&#8212;think of
+<code class="cmd">collapse</code> and <code class="cmd">reshape</code> as
+examples.  At some point, the data will be arranged in an in-between state that
+is not at all like the original nor the final.  The way to code such programs
+is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program  </code>...
+...
+<code class="cmd">preserve</code>
+...
+<code class="cmd">restore, not</code>
+<code class="cmd">end</code>
+</pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="which"></a>2. Which is better:  marksample or mark?</h3>
+
+<p>
+The following are equivalent:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in]</code> ...
+<code class="cmd">marksample touse </code>
+</pre>
+
+<p>
+and 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in] </code>...
+<code class="cmd">tempvar touse</code>
+<code class="cmd">mark `touse' `if' `in'</code>
+<code class="cmd">markout `varlist'</code>
+</pre>
+
+<p>
+It does not matter which you code.
+</p>
+
+<p>
+I prefer <code class="cmd">marksample</code> because I am less likely to make a
+mistake by forgetting something.  For example, pretend that I coded my mark
+command as
+</p>
+
+<pre class="codeblock"><code class="cmd">
+mark `touse' `if' `ip'
+</code></pre>
+
+<p>
+I meant to type <code class="cmd">`in'</code> at the end, but I typed <code class="cmd">`ip'</code> instead.
+<code class="cmd">`ip'</code> is an error, but is not an error that Stata will flag because
+<code class="cmd">`ip'</code> will just evaluate to nothing.  Result:  my program ignores
+<code class="cmd">in</code> <span class="repl">range</span> when the user specifies it.  
+</p>
+
+<p>
+<code class="cmd">marksample</code> is smart in that it accesses the
+information left behind by <code class="cmd">syntax</code>, and <code
+class="cmd">marksample</code> never forgets anything or makes a mistake.  Less
+typing means less chance of error, so I prefer <code
+class="cmd">marksample</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in] </code>...
+<code class="cmd">marksample touse </code>
+</pre>
+
+<p>
+That is, I prefer <code class="cmd">marksample</code> when <code
+class="cmd">marksample</code> does what I want it to do.  <code
+class="cmd">marksample</code> applies all the usual restriction rules, but I
+have written the rare program where I do not want all the usual rules applied.
+Pretend that I was writing a program to report on the pattern of missing values
+in varlist.  If I coded as above, and my program otherwise worked, my program
+would report that none of the variables have missing values, and it would
+report that even when it was not true.  Why?  Because <code
+class="cmd">marksample</code> means
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in] </code>...
+<code class="cmd">tempvar touse</code>
+<code class="cmd">mark `touse' `if' `in'</code>
+<code class="cmd">markout `varlist' </code>
+</pre>
+
+<p>
+with the emphasis on <code class="cmd">markout</code>.  <code
+class="cmd">marksample</code> automatically marks out the missing values in
+varlist.  In this pattern-of-missing-values command, I do not want to mark out
+the missing values because it is precisely their pattern my program intends to
+examine.  I could code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in]</code> ...
+<code class="cmd">marksample touse, novarlist </code>
+</pre>
+
+<p>
+because <code class="cmd">marksample</code> has an option to omit doing the
+<code class="cmd">markout</code>, but I would probably code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax [varlist] [if] [in]</code> ...
+<code class="cmd">tempvar touse</code>
+<code class="cmd">mark `touse' `if' `in'</code>
+</pre>
+
+<p>
+It is just a matter of style.  Both work equally well, and there is no
+difference between their outcomes.
+</p>
+
+<p>
+Basically, I use <code class="cmd">marksample</code> when I code a new command
+following "standard" rules and use <code class="cmd">mark</code> and <code
+class="cmd">markout</code> when my program is unusual.  Thus, when I see <code
+class="cmd">mark</code> in my programs, I know something is up, and if I am
+about to modify the code, I had better look twice to make sure I understand
+what is going on.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="varlist"></a>3. Programming by varlist</h3>
+
+<p>
+Suppose that you want to write a program that reports something, and you want
+to allow the user to to be able to use your program with Stata's <code
+class="cmd">by varlist:</code> prefix, so that the user could type
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. myprogram mpg weight </code>
+</pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock">    
+<code class="cmd">. by foreign:  myprogram mpg weight</code>
+</pre>
+
+<p>
+This is easy to program and, in fact, is related to restricting your command to
+the relevant sample, which we have been discussing.  Remember, if the user
+types the second command, the user wants to see the same result as if he or she
+had typed
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. myprogram mpg weight if foreign==0
+
+. myprogram mpg weight if foreign==1
+</code></pre>
+
+<p>
+assuming that variable foreign takes on the values 0 and 1.  <code
+class="cmd">by</code> amounts to repeatedly performing myprogram and each time
+restricting myprogram to the appropriate sample.
+</p>
+
+<p>
+Half the problem we have already discussed: the solution is to use <code class="cmd">mark</code>
+or <code class="cmd">marksample</code>.
+</p>
+
+<p>
+The other half has to do with repeatedly performing the command, and Stata does
+that automatically.  The bottom line is that if you code your program so that
+it restricts itself to the relevant sample using <code class="cmd">mark</code>
+or <code class="cmd">marksample</code>, all you have to do to make your program
+work with the by prefix is change
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program myprogram</code>
+...
+<code class="cmd">end</code>
+</pre>
+
+<p>
+to read
+</p>
+
+<pre class="codeblock">     
+<code class="cmd">program myprogram, byable(recall)</code>
+           ...        ^^^^^^^^^^^^^^
+<code class="cmd">end</code>
+</pre>
+
+<p>
+In Stata jargon, a program that allows the <code class="cmd">by <span
+class="repl">varlist</span>:</code> prefix is said to be byable.  If you make
+the above change, and the user types
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. by foreign:  myprogram</code> ...
+</pre>
+
+<p>
+your program will be executed once for each by group, and <code
+class="cmd">mark</code> (or <code class="cmd">marksample</code>) will
+automatically know to set the <code class="cmd">`touse'</code> variable to 0
+for observations outside the by group on each iteration.  From the point of
+view of your program, results really are as if the user typed
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. myprogram mpg weight if foreign==0</code>
+
+<code class="cmd">. myprogram mpg weight if foreign==1</code>
+</pre>
+
+<p>
+except that <code class="cmd">`if'</code> is not what is defined; rather, the restriction is
+passed through a side door to <code class="cmd">mark</code> and <code class="cmd">marksample</code>.
+</p>
+
+<p>
+There are two ways to write byable programs, called <code
+class="cmd">byable(recall)</code> and <code class="cmd">byable(onecall)</code>.
+<code class="cmd">byable(recall)</code> is easiest to program and is
+wonderfully robust, and you should use it whenever you can.
+</p>
+
+<p>
+Using <code class="cmd">byable(recall)</code> when executing your program
+multiple times would not produce the desired result.  This can happen for
+substantive or programming reasons.  Substantively, perhaps you want <code
+class="cmd">by <span class="repl">varlist</span>:</code> to mean something
+different.  For example, perhaps
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. by foreign: my_other_command mpg weight 
+</code></pre>
+
+<p>
+is not meant to run <code class="cmd">my_other_command</code> twice, once for
+foreign==0 and again for foreign==1, but to report estimates that are adjusted
+for stratification on foreign.  That would be an example where the <code
+class="cmd">by(onecall)</code> would be required, but I do not much like the
+intended misuse of Stata syntax.  Better would be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. my_other_command mpg weight, by(foreign)
+</code></pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. my_other_command mpg weight, strata(foreign)
+</code></pre>
+
+<p>
+Users expect <code class="cmd">by</code> on the left to mean "repeat,
+independently", and if that is not what you mean, then <code
+class="cmd">by</code> belongs someplace else.  <code
+class="cmd">byable(recall)</code> can be inappropriate for programming reasons.
+Pretend that you are writing a command to create a new variable:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. mygenerate newvar = </code>...
+</pre>
+
+<p>
+Within your program, obviously, you will have a Stata <code
+class="cmd">generate</code> command to create the new variable newvar.  Now you
+want to generalize your program to allow 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. by foreign:  mygenerate newvar = </code>...
+</pre>
+
+<p>
+Think about simply modifying your program to be <code
+class="cmd">byable(recall)</code>.  On the first call, your program would
+execute, restricting itself to the appropriate sample, and <code
+class="cmd">generate</code> newvar; results would be perfect.  On the second
+call, your program would execute again, restricting itself to the
+now-appropriate sample, and then your program would <code
+class="cmd">generate</code> newvar and stop. newvar already exists.  We
+generated that variable on the first call.  Your program does not need <code
+class="cmd">generate</code>; it needs <code class="cmd">replace</code>.
+Typically, in such programs, other differences will arise, too.
+</p>
+
+<p>
+<code class="cmd">byable(onecall)</code> is for handling those kinds of
+problems.  In <code class="cmd">byable(onecall)</code> programs, your program
+is called just once, but various macros are filled in to let you know that the
+user specified <code class="cmd">by</code>.  It is your program's
+responsibility to do the appropriate thing with the information you are passed,
+which includes
+</p>
+
+<pre class="codeblock">
+<code class="cmd">`_byindex'</code>      the name of temporary variables containing 
+                 1, 2, ... that denotes the individual by groups.
+</pre>
+
+<p>
+You are passed other information, too, but you can generally ignore it.  <code
+class="cmd">`_byindex'</code> is all you need.  It is your responsibility to
+write your program to exploit this extra piece of information, but that is
+usually not difficult.  In <code class="cmd">byable(onecall)</code> programs,
+<code class="cmd">mark</code> and <code class="cmd">marksample</code> work no
+differently from how they do in non-byable programs; your program is called
+once, and you put together the <code class="cmd">`touse'</code> information
+with <code class="cmd">`_byindex'</code> and use it appropriately.
+</p>
+
+<p>
+Only once did I find it necessary to write a <code
+class="cmd">byable(onecall)</code> program, and that was <code
+class="cmd">egen</code>.  I do not expect ever to have to write a <code
+class="cmd">byable(onecall)</code> program again, but one never knows.  On the
+other hand, I toss in a <code class="cmd">byable(recall)</code> at the top of
+most of my programs.  (I admit that I have written more than one <code
+class="cmd">byable(onecall)</code> program, but only once did I really have no
+alternative.  The other times, I was translating an old program written before
+<code class="cmd">byable()</code> was available.  The program had a <code
+class="cmd">by()</code> option that handled by processing, and I found it
+convenient to use <code class="cmd">byable(onecall)</code> so that I could
+dummy up a <code class="cmd">by()</code> option and just let the old code work.
+That was convenient, but if I were writing the programs from scratch, I would
+have written them as <code class="cmd">byable(recall)</code> programs.
+</p>
+
+<p>
+As mentioned at the beginning of this section, <code class="cmd">by</code> is a
+prefix command.  To see a list of all Stata prefix commands, type <code
+class="cmd">help prefix</code>.  If you want to create a command that works
+with one of Stata's prefix commands, see <code class="cmd">help program
+properties</code> to learn how.  Also, if you want to write your own prefix
+command, there are some undocumented subroutines that can help you.  Type <code
+class="cmd">help _prefix</code> in your Stata Command window for more
+information on these subroutines. 
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="lists"></a>4. Lists</h3>
+
+<p>
+I want to discuss lists and their manipulation.  A list is nothing more than a
+sequence of tokens (words) separated by spaces
+</p>
+
+<pre class="codeblock">
+1.2 2.5 3.3
+
+myfile.dta thisfile.dta thatfile.dta
+
+mpg price weight 
+
+"element 1"  "element 2"  "third element and last"
+
+`"element 1"'  `"element 2"'   `"third, "quoted" element"'
+</pre>
+
+<p>
+Each of the lists above contain three elements; real lists may contain any
+number of elements, including zero.  White space separates one element from the
+next, and the number of blanks used does not matter.  Quotes&#8212;either simple
+or compound&#8212;may be used to bind elements that themselves contain
+blanks or other quotes.  The style of quoting&#8212;and whether quotes are even
+used&#8212;can be mixed within a single list:
+</p>
+
+<pre class="codeblock">
+myfile.dta  "element 2"  `"third, "quoted" element"'
+</pre>
+
+<p>
+The most common type of list in Stata is the varlist&#8212;a list of 
+variables&#8212;but lists of anything are possible.
+</p>
+
+<p>
+List manipulation refers to 
+</p>
+
+<ul>
+    <li>Creating lists</li>
+
+    <li>Stepping through list elements one-by-one</li>
+
+    <li>Deleting elements from lists</li>
+
+    <li>Adding elements to lists</li>
+</ul>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="creating"></a>5. Creating lists</h3>
+
+<p>
+The most common way lists are created in Stata is by the simple act of parsing:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">syntax varlist</code> ...
+</pre>
+
+<p>
+The local macro <code class="cmd">`varlist'</code> now contains a list of variable names.
+</p>
+
+<p>
+I sometimes use another construction for creating lists.  Right now, I am going
+to show you an artificial example, but shortly, I will show a more reasonable
+one.
+</p>
+
+<p>
+I want to create a list containing the numbers "1 2 3 ... <code
+class="cmd">`n'</code>".  The code fragment is
+</p>
+
+<pre class="codeblock">
+...
+<code class="cmd">local mylist</code>
+<code class="cmd">forvalues i =1/`n' {</code>
+     <code class="cmd">local mylist "`mylist' `i'"</code>
+<code class="cmd">}</code>
+...
+</pre>
+
+<p>
+The <code class="cmd">local mylist</code> statement clears <code class="cmd">local macro mylist</code>&#8212;it is
+equivalent to typing
+</p>
+
+<pre class="codeblock">  
+<code class="cmd">local mylist ""</code>
+</pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local mylist = "" </code>
+</pre>
+
+<p>
+The <code class="cmd">forvalues</code> loop simply generates the <code class="cmd">`n'</code> list elements.  The
+line that reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local mylist "`mylist' `i'"
+</code></pre>
+
+<p>
+appends the next element to the end of mylist.  Trace the execution.  The first
+time this statement is executed, the line reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local mylist " 1"
+</code></pre>
+
+<p>
+and <code class="cmd">`mylist'</code> now contains <code>" 1"</code>.  The list
+does not need the leading blank, which is just an artifact of the code.  More
+complicated code could eliminate it, but the leading blank is of no importance
+one way or the other, so I opt for simpler code.
+</p>
+
+<p>
+The second time local mylist <code class="cmd">"`mylist' `i'"</code> is
+executed, <code class="cmd">`mylist'</code> contains <code>" 1"</code> and
+<code class="cmd">`i'</code> contains <code>"2"</code>, so the expanded line
+reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+local mylist " 1 2"
+</code></pre>
+
+<p>
+and <code class="cmd">`mylist'</code> is reset to contain <code>" 1 2"</code>, and so on.
+</p>
+
+<p>
+As a more realistic example, I once had a programming problem where I needed to
+create temporary Stata datasets containing the data corresponding to each group
+of a <code class="cmd">by()</code> option.  I began by processing the <code
+class="cmd">by()</code> option in the usual way.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+syntax ... [, BY(varlist) ... ] 
+marksample touse
+tempvar group
+egen `group' = group(`by') if `touse'
+</code></pre>
+
+<p>
+In this code, I used the <code class="cmd">egen</code> function rather than the
+mark-sort-and-sum logic of lecture 3.  That's not important&#8212;one is the
+equivalent of the other&#8212;either creates a <code
+class="cmd">`group'</code> variable that is encoded 1, 2, ..., k.  I did need
+to know how many groups I had:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly summarize `group' if `touse'
+local k = r(max)
+</code></pre>
+
+<p>
+The program I was about to write was long and involved, and I simply did not
+want to be bothered with making sure I said <code class="cmd">if `touse'</code>
+at the end of all the relevant commands.  Second, there was going to be lots of
+sorting, merging, and other manipulations, so keeping track of which
+observations were relevant was too difficult for me.  So, my next two lines
+read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+preserve
+quietly keep if `touse'
+</code></pre>
+
+<p>
+Now, remember my problem:  I needed to create temporary Stata datasets
+containing the data corresponding to each group of the <code
+class="cmd">by()</code> option.  That is, I needed one dataset for <code
+class="cmd">`group'</code>==1, another for <code class="cmd">`group'</code>==2,
+and so on.  (What I intended to do with those datasets is not important.)  Here
+is what I did:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">quietly {</code>
+     <code class="cmd">forvalues i = 1/`k' { </code>
+          <code class="cmd">restore, preserve   </code>  /* reload the preserved data */
+          <code class="cmd">keep if `group'==`i' &amp; `touse'</code>
+          <code class="cmd">tempfile work</code>
+          <code class="cmd">save `"`work'"'</code>
+          <code class="cmd">local files `"`files' `"`work'"'"'</code>
+     <code class="cmd">}</code>
+<code class="cmd">}</code>
+</pre>
+
+<p>
+That is, I looped across the groups, reloaded the original data, kept the
+subsample, got a temporary filename, saved the data, and added the temporary
+filename to a list called <code class="cmd">`files'</code>.  Also note that I
+did not bother to initialize <code class="cmd">`files'</code>&#8212;there is no
+<code class="cmd">local files</code> line.  I could have included this before
+the <code class="cmd">forvalues</code>, and perhaps I should have for clarity,
+but since <code class="cmd">`files'</code> had never been used previously in my
+program, <code class="cmd">`files'</code> was by definition empty.
+</p>
+
+<p>
+I hope all the quotes are not confusing, but just in case they are, in my first
+draft of the above code, rather than coding
+</p>
+
+<pre class="codeblock">
+<code class="cmd">save `"`work'"'</code>
+</pre>
+
+<p>
+I coded 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">save `work'</code>
+</pre>
+
+<p>
+and rather than coding 
+</p>
+
+<pre class="codeblock">       
+<code class="cmd">local files `"`files' `"`work'"'"'</code>
+</pre>
+
+<p>
+I coded 
+</p>
+
+<pre class="codeblock">        
+<code class="cmd">local files "`files' `work'"</code>
+</pre>
+
+<p>
+That's more readable but I realized that on some people's computers, the
+temporary filename <code class="cmd">`work'</code> might have a blank in it
+because their computers store temporary files in the directory
+<code>c:\temporary files\</code> or some such place.  I was attempting to
+create the list
+</p>
+
+<pre class="codeblock">
+<span class="repl">file_for_group_1 file_for_group_2</span> ...
+</pre>
+
+<p>
+but if the filenames for the groups had blanks, I would need 
+</p>
+
+<pre class="codeblock">
+"<span class="repl">file_for_group_1</span> " "<span class="repl">file_for_group_2</span> ...
+</pre>
+
+<p>
+Then I realized that some strange person out there might have a temporary
+directory with quotes in its name: 
+</p>
+
+<pre class="codeblock">
+`"<span class="repl">file_for_group_1 </span>"' `"<span class="repl">file_for_group_2 </span>"' ...
+</pre>
+
+<p>
+would be even safer.  Hence, 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">save `work'</code>
+</pre>
+
+<p>
+became
+</p>
+
+<pre class="codeblock">
+<code class="cmd">save "`work'"</code>
+</pre>
+
+<p>
+became 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">save `"`work'"'</code>
+</pre>
+
+<p>
+and 
+</p>
+
+<pre class="codeblock">    
+<code class="cmd">local files "`files' `work'"</code>
+</pre>
+
+<p>
+became
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local files `"`files' "`work'""'</code>
+</pre>
+
+<p>
+became
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local files `"`files' `"`work'"'"'</code>
+</pre>
+
+<p>
+Just understand that a list is <code class="cmd">`"thing1 thing2 thing3 ..."'</code>.  If the
+things are not quoted, that's fine, but then the things are distinguished by the
+blanks that separate them.  If you want to allow for the things themselves to
+contain blanks, you can code the list <code class="cmd">`""thing1" "thing2" "thing3""'</code>.  If
+you want to allow for the things themselves to also contain quotes, you can code
+the list <code class="cmd">`"`"thing1"' `"thing2"' `"thing3"'"'</code>.  This last is safest but
+is the most difficult to read.
+</p>
+
+<p>
+Anyway, returning to my problem, I had just formed a list of datasets.  Later in
+my code, when I needed to reaccess the datasets, I could obtain the names from
+my list in <code class="cmd">`files'</code>, which brings us to the second issue on dealing with
+lists.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="stepping"></a>6. Stepping through list elements one by one</h3>
+
+<p>
+There are several ways to step through list elements. I will show you two of
+them, one of which you have seen before. 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">foreach i of local list {</code>
+     ...            /* logic referring to `i' */
+<code class="cmd">}</code>
+</pre>
+
+<p>
+So, in my separate-datasets-per-by-group example, when the time came to
+reaccess the datasets, I could code
+</p>
+
+<pre class="codeblock">
+<code class="cmd">foreach i of local files {</code>
+     <code class="cmd">use `"`i'"', clear</code>
+     ...
+<code class="cmd">}</code>
+</pre>
+
+<p>
+There is another way to step through lists:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local i = 1</code>
+<code class="cmd">local token : word `i' of `list'</code>
+<code class="cmd">while `"`token'"' != "" {</code>
+     ...                    /* logic in terms of token */
+     <code class="cmd">local i = `i' + 1</code>
+     <code class="cmd">local token : word `i' of `list'</code>
+<code class="cmd">}</code>
+</pre>
+
+<p>
+This method hinges on the <code class="cmd">local ... : word ... of ...</code> command.  It's
+pretty readable:
+</p>
+
+<p>
+<code class="cmd">word 1 of alpha beta gamma</code> is <code>alpha"</code><br>
+<code class="cmd">word 2 of alpha beta gamma</code> is <code>"beta"</code><br>
+<code class="cmd">word 3 of alpha beta gamma</code> is <code>"gamma"</code><br>
+<code class="cmd">word 4 of alpha beta gamma</code> is <code>""</code><br>
+</p>
+
+<p>
+Try it interactively:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. local mylist "alpha beta gamma"
+. local x : word 2 of `mylist'
+. display "`x'"
+</code></pre>
+
+<p>
+You will discover that <code class="cmd">`x'</code> contains <code class="cmd">beta</code>.  Quotes work exactly as
+you would expect:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. local mylist `"alpha `"beta or b"' gamma"'
+. local x : word 2 of `mylist'
+. display "`x'"
+</code></pre>
+
+<p>
+<code class="cmd">`x'</code> will contain <code class="cmd">beta or b</code>.
+</p>
+
+<p>
+The first method is now the preferred method, as it requires less programming
+and its logic is transparent.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="deleting"></a>7. Deleting elements from lists</h3>
+
+<p>
+Sometimes, you have a list and need to delete an element from it, (say, the
+<code class="cmd">`i'</code>th one).  The trick to doing this is in understanding how <code class="cmd">`*'</code>
+works.  The formal definition of <code class="cmd">`*'</code> is
+</p>
+
+<p>
+<code class="cmd">`*'</code> is the tokens <code class="cmd">`1', `2', `3'</code>, ..., appended one after the
+other, with a single blank in between.
+</p>
+
+<p>
+For example, if the macros contain
+</p>
+
+<table class="standard">
+<tr>
+<th>`1'</th>
+<th>`2'</th>
+<th>`3'</th>
+<th>`4'</th>
+<th>`5'</th>
+<th>`*' contains</th>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td>weight</td>
+<td>turn</td>
+<td>rep78</td>
+<td><span class="repl">nothing</span></td>
+<td> mpg weight turn rep78</td>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td>weight</td>
+<td><span class="repl">nothing</span></td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td>mpg weight</td>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td><span class="repl">nothing</span></td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td>mpg</td>
+</tr>
+
+<tr>
+<td><span class="repl">nothing</span></td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td>&#8212;</td>
+<td><span class="repl">nothing</span></td>
+</tr>
+
+</table>
+
+
+<p>
+The location of the first <span class="repl">nothing</span> determines where
+<code class="cmd">`*'</code> ends.  The table above could just as well be
+presented as
+</p>
+
+<table class="standard">
+
+<tr>
+<th>`1'</th>
+<th>`2'</th>
+<th>`3'</th>
+<th>`4'</th>
+<th>`5'</th>
+<th>`*' contains</th>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td>weight</td>
+<td>turn</td>
+<td>rep78
+</td>
+<td><span class="repl">nothing</span></td>
+<td> mpg weight turn rep78</td>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td>weight</td>
+<td><span class="repl">nothing</span></td>
+<td>rep78</td> 
+<td><span class="repl">nothing</span></td>
+<td>mpg weight</td>
+</tr>
+
+<tr>
+<td>mpg</td>
+<td><span class="repl">nothing</span></td>
+<td>turn</td>
+<td>
+rep78</td>
+<td><span class="repl">nothing</span></td>
+<td>mpg</td>
+</tr>
+
+<tr>
+<td><span class="repl">nothing</span></td>
+<td>weight</td>
+<td>turn</td>
+<td>
+rep78</td>
+<td><span class="repl">nothing</span></td>
+<td><span class="repl">nothing</span></td>
+</tr>
+</table>
+
+
+<p>
+Consider the second line.  Since <code class="cmd">`3'</code> contains <span
+class="repl">nothing</span>, it simply does not matter that <code
+class="cmd">`4'</code> contains <code>rep78</code>; <code
+class="cmd">`*'</code> contains only "<code class="cmd">`1' `2'</code>",
+meaning <code>mpg weight</code>.
+</p>
+
+<p>
+Now, let me clarify the meaning of <span class="repl">nothing</span>&#8212;it 
+is nothing, "", or nullstring.  They all mean that the macro has no contents.
+</p>
+
+<pre class="codeblock">
+----------------------------------------------------------------------
+If 
+      <code class="cmd">`1'</code> contains "mpg"
+      <code class="cmd">`2'</code> contains "weight"
+      <code class="cmd">`3'</code> contains "turn"
+      <code class="cmd">`4'</code> contains "rep78"
+
+                   and I type <code class="cmd">local 3 ""</code>, clearing macro <code class="cmd">`3'</code>, 
+
+                                    <code class="cmd">`*'</code> contains "mpg weight"
+----------------------------------------------------------------------
+</pre>
+
+<p>
+<span class="repl">nothing</span> is quite distinct from blank:
+</p>
+
+<pre class="codeblock">
+----------------------------------------------------------------------
+If 
+      <code class="cmd">`1'</code> contains "mpg"
+      <code class="cmd">`2'</code> contains "weight"
+      <code class="cmd">`3'</code> contains "turn"
+      <code class="cmd">`4'</code> contains "rep78"
+
+                   and I type <code class="cmd">local 3 " "</code>,
+
+                                    <code class="cmd">`*'</code> contains "mpg weight  rep78"
+----------------------------------------------------------------------
+</pre>
+
+<p>
+<code class="cmd">local 3 " "</code> is the key to deleting elements from a list.  To delete the
+third element from list <code class="cmd">`list'</code>, <code class="cmd">tokenize</code> it, blank out the
+element, and resave the list:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize `"`list'"'
+local 3 " "
+local list `"`*'"'
+</code></pre>
+
+<p>
+To delete the <code class="cmd">`i'</code>th element from the list&#8212;where <code class="cmd">`i'</code> is a
+local macro containing an integer&#8212;
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tokenize `"`list'"'
+local `i' " "
+local list `"`*'"'
+</code></pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="adding"></a>8. Adding elements to lists</h3>
+
+<p>
+We have already seen how to add an element to the tail of a list:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local list `"`list' <span class=newelement</span>"'</code>
+</pre>
+
+<p>
+You can also add elements to the middle of a list, but in my 
+experience, that is seldom needed.  Adding in the middle is a variation of
+deleting elements.  To add <span class="repl">newelement</span> between the third and fourth
+elements of a list:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">tokenize `"`list'"'</code>
+<code class="cmd">local 3 `"`3' <span class="repl">newelement</span>"'</code>
+<code class="cmd">local list `"`*'"'</code>
+</pre>
+
+<p>
+To add <span class="repl">newelement</span> between elements <code class="cmd">`i'</code> and <code class="cmd">`i'</code>+1, where
+<code class="cmd">`i'</code> is a macro containing an integer,
+</p>
+
+<pre class="codeblock">
+<code class="cmd">tokenize `"`list'"'</code>
+<code class="cmd">local `i' `"``i'' <span class="repl">newelement</span>"'</code>
+<code class="cmd">local list `"`*'"'</code>
+</pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="macro"></a>9. Macro vectors</h3>
+
+<p>
+Related to lists but serving a different purpose are vectors of macros.
+There have been times when I have wanted to create macros
+</p>
+
+<pre class="codeblock">
+<code class="cmd">`x[i]', i= 1, 2, </code>...
+</pre>
+
+<p>
+Stata does not support the <code class="cmd">`x[i]'</code> notation.  The right
+notation is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">`x`i'', `i' = 1, 2, </code>...
+</pre>
+
+<p>
+Do you see how this works?  Be very mechanical and expand <code class="cmd">`x`i''</code>,
+assuming a previous <code class="cmd">local i 1</code> statement.
+</p>
+
+<pre class="codeblock">
+<code class="cmd">`x`i''</code> when <code class="cmd">`i'</code> contains 1 expands to 
+<code class="cmd">`x1'</code>   because you expand the inside first
+</pre>
+
+<p>
+Similarly, 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">`x`i''</code> when <code class="cmd">`i'</code> contains 2 expands to 
+<code class="cmd">`x2'</code>
+</pre>
+
+<p>
+There, then, is my vector.  If I want to set the <code class="cmd">`i'</code>th element, I type
+</p>
+
+<pre class="codeblock">
+<code class="cmd">local x`i'</code> ...
+</pre>
+
+<p>
+When I want to use the <code class="cmd">`i'</code>th element, I type
+</p>
+
+<pre class="codeblock">
+... <code class="cmd">`x`i''</code> ...
+</pre>
+
+<p>
+Vectors and lists are obviously related; vectors and lists differ in that
+</p>
+
+<ol>
+    <li>There is no way to refer to the vector as a whole; you can
+        refer only to the individual elements.</li>
+    <li>In return, it is easier to access the individual elements, and you
+        can access them in any order.</li>
+</ol>
+
+<p>
+For some problems, lists are preferable; for others, vectors work best; and for
+yet others, it does not make much difference.
+</p>
+
+<p>
+Remember my separate-datasets-per-by-group example, which I coded using a
+list:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+preserve
+quietly keep if `touse'
+quietly {
+     forvalues i = 1/`k' { 
+          restore, preserve
+          keep if `group'==`i' &amp; `touse'
+          tempfile work
+          save `"`work'"'
+          local files `"`files' `"`work'"'"'
+     }
+     ...
+     foreach i of local files {
+          use `"`i'"', clear 
+          ...
+     }
+     ...
+}
+</code></pre>
+
+<p>
+I could just as well have done this using macro vectors:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+preserve
+quietly keep if `touse'
+quietly {
+     forvalues i = 1/`k' { 
+          restore, preserve
+          keep if `group'==`i' &amp; `touse'
+          tempfile file`i'                     lt;--
+          save `"`file`i''"'                   lt;--
+     }
+     ...
+     forvalues i = 1/`k' {                     lt;--
+          use `"`file`i''"', clear             lt;--
+          ...
+     }
+     ...
+}
+</code></pre>
+
+<p>
+This code is better than the previous code, but I really did use the previous
+code in the example I refer to.  That is, I tend to overuse lists, and
+there is nothing too wrong with that.
+</p>
+
+<p>
+Other than being a little shorter, why is this code better?  Imagine that
+<code class="cmd">`k'</code> was a very large number (<code class="cmd">`k'</code>, you will remember, is the number
+of groups in the data).  In my previous list-based solution, I would attempt to
+stack all of those filenames into a single macro.  The filenames that
+<code class="cmd">tempfile</code> produces are roughly 18 to 28 characters long, depending on your
+operating system.
+</p>
+
+<p>
+<!-- change limit -->  The maximum length of a macro is 165,200 characters in 
+Stata/IC 
+<!-- change limit --> and 1,081,511 in Stata/SE and Stata/MP.  
+Now, imagine what would happen as the number of files grew large.  The
+vector-based program would continue to work, but the list-based program would
+fail once the number of characters we were trying to store in our macro exceeded
+the limit.  (In the real problem underlying this example, there were only 100
+groups, so my inferior program worked.)
+</p>
+
+<p>
+Turning to the new code, note the lines that read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempfile file`i' 
+save `"`file`i''"'
+</code></pre>
+
+<p>
+There are no mistakes.  <code class="cmd">file`i'</code> is the name of the <code class="cmd">`i'</code>th file
+macro, and <code class="cmd">`file`i''</code> is its contents.  Pretend that <code class="cmd">`i'</code> contains
+5.  Then, the lines read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempfile file5
+save `"`file5'"'
+</code></pre>
+
+<p>
+This also emphasizes that when you form a vector of macros in this way, you are
+producing the result by trickery with the name, which means you had better be
+sure the trickery works out.  
+</p>
+
+<p>
+The same trickery can also be used to produce multidimensional arrays of macros,
+but I have never yet found a use for it.  If you wanted to do this, I suggest
+</p>
+
+<table class="standard">
+<tr>
+<td>x`i'_`j'</td>
+<td>to define the [<code class="cmd">`i',`j'</code>] macro</td>
+</tr>
+<tr>
+<td>`x`i'_`j''</td>
+<td>to refer to its contents</td>
+</tr>
+</table>
+
+<p>
+The underscore in the middle is important, although you could use whatever
+character you liked.  Pretend that you left the underscore out, creating macros
+named <code class="cmd">x`i'`j'</code> (and accessing them as <code class="cmd">`x`i'`j''</code>).  Now, consider
+the macro with the resulting name x123.  Does it refer to <code class="cmd">x`i'`j'</code> for
+<code class="cmd">`i'</code>=1 and <code class="cmd">`j'</code>=23 or to the macro for <code class="cmd">`i'</code>=12 and
+<code class="cmd">`j'</code>=3?  The answer is that both [1,23] and [12,3] produce the 123 suffix,
+and therein lies the problem.  The intervening underscore solves that problem.
+</p>
+
+<p>
+As I said, not once have I needed a two-dimensional macro array.
+</p>
+
+<p>
+You can also create global macro vectors&#8212;the logic is the same, but the
+way you nest global macro expansions is different from local expansions.  It
+takes two characters to expand a local macro,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+`...'
+</code></pre>
+
+<p>
+the open and the close quote.  Thus the meaning of something complicated such
+as <code class="cmd">`x`i''</code> is clear because the open and close quotes match:
+</p>
+
+<pre class="codeblock">
++----+
+|    |
+<code class="cmd">`x`i''</code>
+ | |
+ +-+
+</pre>
+
+<p>
+The global macro expansion character is a single dollar sign.  Thus consider
+</p>
+
+<pre class="codeblock">
+<code class="cmd">$x$i</code>
+</pre>
+
+<p>
+That is not a vector; that is a request to expand the global macro <code class="cmd">$x</code> 
+followed by the expansion of <code class="cmd">$i</code>.  The way you write the nested expansion 
+is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">${x$i}</code>
+</pre>
+
+<p>
+That is, Stata allows the <code class="cmd">$</code> to be followed by an open brace and, if it
+is, finds the matching close brace.  <code class="cmd">${x$i}</code> makes it clear that the
+inside, <code class="cmd">x$i</code>, must be expanded first.  If <code class="cmd">$i</code> contains 1, <code class="cmd">x$i</code>
+expands to <code class="cmd">x1</code>, so <code class="cmd">${x$i}</code> expands to <code class="cmd">${x1}</code>, which refers to
+the contents of the global macro <code class="cmd">$x1</code>.
+</p>
+
+<p>
+You can mix global and local macro expansions.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+${x`i'}
+</code></pre>
+
+<p>
+refers to <code class="cmd">$x2</code> if local macro <code class="cmd">`i'</code> contains 2.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="parsing"></a>10. Parsing revisited: gettoken</h3>
+
+<p>
+Consider parsing the following command:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. mycmd 3 earnings age if sex=="female", follow
+</code></pre>
+
+<p>
+After invoking our program, we have the following at our disposal:
+</p>
+
+<table class="standard">
+<tr>
+<th>`0'</th>
+</tr>
+<tr>
+<td>3 earnings age if sex=="female", follow</td>
+</tr>
+</table>
+
+<p></p>
+
+<table class="standard">
+<tr>
+<th>`1'</th>
+<th>`2'</th>
+<th>`3'</th>
+<th>`4'</th>
+<th>`5'</th>
+<th>`6'</th>
+<th>`7'</th>
+<th>`8'</th>
+</tr>
+<tr>
+<td>3</td>
+<td>earnings</td>
+<td>age</td>
+<td>if</td>
+<td>sex==</td>
+<td>female</td>
+<td>,</td>
+<td>follow</td>
+</tr>
+</table>
+
+<p>
+None of the parsing tools we have so far learned can handle this problem.
+<code class="cmd">syntax</code> parses <code class="cmd">`0'</code>, but the command does not follow standard Stata
+syntax because of the leading number.
+</p>
+
+<p>
+The other approach we learned&#8212;using the positional parameters&#8212;will
+not help because the quotes around <code>"female"</code> have been lost.  Looking at that, we
+cannot tell whether the user typed <code class="cmd">if sex==female</code> (referring to two
+variables) or <code class="cmd">if sex=="female"</code>.  In fact, we cannot even tell whether the
+user typed <code class="cmd">if "sex==" "female"</code>.
+</p>
+
+<p>
+The solution to parsing nonstandard syntax is to use <code class="cmd">gettoken</code> and, in
+fact, we can parse <code class="cmd">mycmd</code> by coding
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken number 0 : 0
+syntax varlist [if] [in] [, Follow]
+</code></pre>
+
+<p>
+The syntax of <code class="cmd">gettoken</code> is 
+</p>
+
+<pre class="codeblock">
+gettoken <span class="repl">newmac</span>          : <span class="repl">oldmac</span> [, <span class="repl">options</span>  ]
+</pre>
+
+<p>
+and
+</p>
+
+<pre class="codeblock">
+gettoken <span class="repl">newmac</span> <span class="repl">oldmac</span> : <span class="repl">oldmac</span> [, <span class="repl">options</span>  ]
+</pre>
+
+<p>
+where <span class="repl">oldmac</span> and <span class="repl">newmac</span> are macro names.  <code class="cmd">gettoken</code>
+looks at <span class="repl">oldmac</span>, obtains the next syntactic element (token) from
+it, and stores it in <span class="repl">newmac</span>.  In the second syntax, <code class="cmd">gettoken</code>
+also takes what is left over and uses that to replace <span class="repl">oldmac</span>.  In
+the first syntax, the contents of <span class="repl">oldmac</span> remain unchanged.
+</p>
+
+<p>
+Consider <code class="cmd">`0'</code> containing 
+</p>
+
+<table class="standard">
+<tr>
+<th>`0'</th>
+</tr>
+
+<tr>
+<td>3 earnings age if sex=="female", follow</td>
+</tr>
+</table>
+
+<p>
+and coding 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken number   : 0
+</code></pre>
+
+<p>
+or
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken number 0 : 0
+</code></pre>
+
+<p>
+Either way, <code class="cmd">`number'</code> now contains <code class="cmd">3</code>, and in the first case, 
+<code class="cmd">`0'</code> remains unchanged,
+</p>
+
+<table class="standard">
+<tr>
+<th>`0'</th>
+</tr>
+
+<tr>
+<td>3 earnings age if sex=="female", follow</td>
+</tr>
+</table>
+
+<p>
+In the second case, <code class="cmd">`0'</code> is changed so that the first token is 
+removed:
+</p>
+
+<table class="standard">
+<tr>
+<th>`0'</th>
+</tr>
+
+<tr>
+<td>earnings age if sex=="female", follow</td>
+</tr>
+
+</table>
+
+<p>
+By default, the token that is gotten is identified by spaces, but the
+<code class="cmd">parse()</code> option can change that, just as it can with <code class="cmd">tokenize</code>.
+<code class="cmd">gettoken</code> differs from <code class="cmd">tokenize</code> in that it splits off only the
+first token (<code class="cmd">tokenize</code> continues to split the entire string into pieces),
+and <code class="cmd">gettoken</code> puts the single results where you say (<code class="cmd">tokenize</code> puts
+the results in <code class="cmd">`1', `2'</code>, ...).
+</p>
+
+<p>
+The advantage of <code class="cmd">gettoken</code> is that you can pull off some of the string
+while leaving the rest alone.
+</p>
+
+<p>
+Really, this is how we should have written <code class="cmd">mytti</code>.  The method we used
+worked fine in that case, but the <code class="cmd">gettoken</code> method for parsing
+nonstandard syntax works in all cases.
+</p>
+
+<p>
+Let's pretend that we wanted to parse 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. progi # # [, Constant]
+</code></pre>
+
+<p>
+The code would be 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken num1 0 : 0, parse(" ,")
+gettoken num2 0 : 0, parse(" ,")
+syntax [, Constant]
+confirm number `num1'
+confirm number `num2'
+</code></pre>
+
+<p>
+Let's pretend that we wanted to parse 
+</p>
+
+<p>
+
+<pre class="codeblock"><code class="cmd">
+. prog2 # [#] [varlist] [if] [, Hold Constant]
+</code></pre>
+
+<p>
+where the second number defaults to being 0 if it is not specified.  The code
+would be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken num1 0 : 0, parse(" ,")
+gettoken try    : 0, parse(" ,")
+capture confirm number `try'
+if _rc==0 { 
+     gettoken num2 0 : 0, parse(" ,") 
+}
+else {
+     local num2 0
+}
+syntax [varlist] [if] [, Hold Constant]
+</code></pre>
+
+<p>
+Notice what we do in line 2:&nbsp; we try getting the second number, but we do
+not commit to it, and in particular, we do not replace <code class="cmd">`0'</code> with what is
+left over.  We then look at what we did get, and if it is a number, we go ahead
+and get the token again, this time adjusting <code class="cmd">`0'</code> afterwards.
+</p>
+
+<p>
+We can also use <code class="cmd">gettoken</code> to modify the syntax of
+<code class="cmd">mytt</code> to also allow <a href="nc152-l1.html#2eq">two
+equal signs (==)</a> when using the first two syntaxes.   In the program <code
+class="cmd">mytt</code> the first token passed to <code class="cmd">mytt</code>
+should be a varname and the second token should be either <code>=</code> or
+<code>==</code>.   We can use the command 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken vn rest : 0, parse(" =")
+</code></pre>
+
+<p>
+to store the first token of macro <code class="cmd">`0'</code> in the macro
+<code class="cmd">`vn'</code> and the rest of <code class="cmd">`0'</code> in
+the macro <code class="cmd">`rest'</code>.  Next, we can use the command
+</p>
+
+<pre class="codeblock"><code class="cmd">
+gettoken eq rest : rest, parse(" =")
+</code></pre>
+
+<p>
+to store the first token of the macro <code class="cmd">`rest'</code> in the macro <code class="cmd">`eq'</code> and
+the remainder of the macro <code class="cmd">`rest'</code> will replace the current contents of
+the macro <code class="cmd">`rest'</code>.  
+</p>
+
+<p>
+Last, if the second token <code class="cmd">`eq'</code> contains <code>==</code> we need
+to rebuild the macro <code class="cmd">`0'</code> so that there is only one
+<code>=</code>.  We need to do this because the <code class="cmd">syntax</code> command
+will produce an error if the macro  <code class="cmd">`0'</code> contains <code>==</code>.
+The code to do this would be 	  
+
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if "`eq'" == "==" {
+	local 0 `vn' = `rest'
+}
+</code></pre>
+
+<p>
+If the macro <code class="cmd">`eq'</code> contains something besides <code>==</code>, we don't care because
+<code class="cmd">syntax</code> should catch any errors in <code class="cmd">`0'</code>.
+</p>
+
+<p>
+The final code before the <code class="cmd">syntax</code> command of <code class="cmd">mytt</code> should read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+/* turn "==" into "=" if needed before calling -syntax- */
+gettoken vn rest : 0, parse(" =")
+gettoken eq rest : rest, parse(" =")
+if "`eq'" == "==" {
+	local 0 `vn' = `rest'
+}
+</code></pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="quietly"></a>11. Quietly blocks</h3>
+
+<p>
+In the programming examples, you have seen me use the <code class="cmd">quietly</code> prefix
+to suppress output.  I have used two schemes,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly gen `wrk' = ...
+quietly summarize ...
+local mean = r(mean)
+</code></pre>
+
+<p>
+and 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+     gen `wrk' = ...
+     summarize ...
+     local mean = r(mean)
+}
+</code></pre>
+
+<p>
+Which style you use is up to you&#8212;it makes no difference.  Mostly, I prefer
+the second&#8212;it's called a quietly block&#8212;because it prevents me from
+forgetting to put a <code class="cmd">quietly</code> in front of some command that needs it.  Note
+that, literally, the line-by-line equivalent to my quietly block code is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly gen `wrk' = ...
+quietly summarize ...
+quietly local mean = r(mean)
+</code></pre>
+
+<p>
+The <code class="cmd">quietly</code> in front of <code class="cmd">local</code> is not necessary because
+<code class="cmd">local</code> does not produce any output, but it would not hurt.  Burying
+program code in a quietly block is a convenient way of ensuring that no output
+appears in the midst of calculation.
+</p>
+
+<p>
+Going along with <code class="cmd">quietly</code> is <code class="cmd">noisily</code>, so you can code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+     ...
+     noisily display ...
+     ...
+}
+</code></pre>
+
+<p>
+although I do not use <code class="cmd">noisily</code> much.  I prefer
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly { 
+     ...
+}
+display ...
+quietly {
+     ...
+}
+</code></pre>
+
+<p>
+If I have only one <code class="cmd">display</code> command in the middle, I use
+the <code class="cmd">noisily</code> form.  The choice is purely a matter of style.
+</p>
+
+<p>
+As advanced programmers, however, you need to understand exactly how
+<code class="cmd">quietly</code> and <code class="cmd">noisily</code> work.  This also involves <code class="cmd">display</code>
+styles (colors) which play a role even on monochrome display devices.
+</p>
+
+<p>
+When you say <code class="cmd">quietly</code>, Stata stops displaying normal
+output.  Normal output (by default) is defined as the <code
+class="cmd">display</code> styles "as result" (yellow) or "as text" (green).
+The remaining two <code class="cmd">display</code> styles (colors), "as error"
+(red) and "as input" (white), are considered special.
+</p>
+
+<p>
+Thus if you code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+     ...
+     display "hi there"
+}
+</code></pre>
+
+<p>
+the <code>hi there</code> will never appear.  <code class="cmd">display</code>
+produces output like any other command, so <code class="cmd">quietly</code>
+suppresses it.  On the other hand, things displayed "as error" show through:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+      ...
+      display as error "you made a mistake"
+}
+</code></pre>
+
+<p>
+Understand, the <code class="cmd">display</code> command is not acting any
+differently; the difference in outcomes is a result of the <code
+class="cmd">display</code> style itself.  <code class="cmd">quietly</code> or
+not, if it is "as error" (red), it is displayed.  That is why you might have a
+program that reads in part 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+     ...
+     regress
+     ...
+}
+</code></pre>
+
+
+<p>
+and if there are no prior regression estimates, the user will see 
+</p>
+
+<pre class="codeblock">
+last estimates not found
+r(301);
+</pre>
+
+<p>
+The <code>last estimates not found</code> message is presented with an "as
+error" display style, and thus in red, so it is displayed despite the <code
+class="cmd">quietly</code>.  (Then <code class="cmd">regress</code> produces
+the 301 return code, which stops your program.)
+</p>
+
+<p>
+The next thing to understand is that either you are doing things <code
+class="cmd">quietly</code> or you are not; to put it differently, there are no
+degrees of <code class="cmd">quietly</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly { 
+     ...
+     quietly regress
+     ...
+}
+</code></pre>
+
+<p>
+is no different from the above, where <code class="cmd">regress</code> is not
+directly prefixed with <code class="cmd">quietly</code>.  If you do something
+<code class="cmd">quietly</code>, or <code class="cmd">quietly quietly</code>,
+or even <code class="cmd">quietly quietly quietly</code>, it does not matter;
+you are doing it <code class="cmd">quietly</code>.
+</p>
+
+<p>
+<code class="cmd">noisily</code> apparently cancels <code
+class="cmd">quietly</code>.  I say apparently because what <code
+class="cmd">noisily</code> really does is different from that, but in most
+cases a <code class="cmd">noisily</code> cancels a <code
+class="cmd">quietly</code>.  When you code
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly {
+     ...
+     noisily regress
+     ...
+}
+</code></pre>
+
+<p>
+you expect that the regression estimates will be displayed, and in most cases,
+they will.  But pretend that block of code shows up in program <code
+class="cmd">XYZsub</code> and that <code class="cmd">XYZsub</code> was invoked
+by program <code class="cmd">XYZ</code> by the line of code <code
+class="cmd">quietly XYZsub</code>.  That is,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZ
+     ...
+     quietly XYZsub
+     ...
+end
+
+program XYZsub
+     ...
+     quietly { 
+          ...
+          noisily regress
+          ...
+     }
+     ...
+end</code>
+</pre>
+
+<p>
+In this case, the regression estimates will not be displayed.  The program
+<code class="cmd">XYZsub</code> itself is being run quietly, and no number of <code class="cmd">noisily</code>s will
+undo that.  I will explain how Stata produces this surprising result, but first
+understand that this is exactly what you would want to happen.  Think of a
+different context.  You write a program <code class="cmd">ABC</code>,
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program ABC 
+     ...
+     regress
+     ...
+end
+</code></pre>
+
+<p>
+Now, if the user types <code class="cmd">ABC</code>, the user should see the regression output:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. ABC</code>
+<span class="repl">regression output appears</span> 
+</pre>
+
+<p>
+If the user interactively types <code class="cmd">quietly ABC</code>, however, the user is
+demanding that no output (except error messages) appear:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. quietly ABC</code>
+<span class="repl">nothing appears</span> 
+</pre>
+
+<p>
+Again, that is what happens.  Despite your coding that <code
+class="cmd">regress</code> display its output in your <code
+class="cmd">ABC</code> program, the user suppressed that output.  Now, if your
+<code class="cmd">ABC</code> program happened to read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program ABC 
+     ...
+     quietly {
+          ...
+          noisily regress
+          ...
+     }
+end
+</code></pre>
+
+<p>
+nothing has changed.  The <code class="cmd">noisily</code> is intended to undo the
+<code class="cmd">quietly</code>, but it is still the case that if the user types
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. quietly ABC</code>
+</pre>
+
+<p>
+the user expects to see nothing and in fact sees nothing.
+</p>
+
+<p>
+<code class="cmd">noisily</code> produces this behavior by reestablishing the value of
+<code class="cmd">quietly/noisily</code> when the program <code class="cmd">ABC</code> was invoked.  <code class="cmd">noisily</code>
+does not really mean "noisily": it means "with the default output level".  A
+side effect of this is that if <code class="cmd">ABC</code> reads </p>
+
+<pre class="codeblock"><code class="cmd">
+program ABC
+     ...
+     noisily regress
+     ...
+end
+</code></pre>
+
+<p>
+and the user types 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. quietly ABC
+</code></pre>
+
+<p>
+the user still sees nothing.  The <code class="cmd">noisily</code> does not undo the user's
+<code class="cmd">quietly</code>: the <code class="cmd">noisily</code> simply reasserts the value of
+<code class="cmd">noisily/quietly</code> that was in effect when <code class="cmd">ABC</code> was invoked,
+which is <code class="cmd">quietly</code>.
+</p>
+
+<p>
+This probably seems mightily confusing.  To understand the effect, think of
+<code class="cmd">noisily</code> as meaning "noisily if it makes sense, given how I was called,
+and otherwise quietly":
+</p>
+
+<pre class="codeblock"><code class="cmd">
+noisily regress
+</code></pre>
+
+<p>
+means
+</p>
+
+<pre class="codeblock">
+<code class="cmd">noisily</code> if it makes sense ... and otherwise quietly noisily
+if it makes sense ... and otherwise quietly <code class="cmd">regress</code>
+</pre>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="the"></a>12. The relation between capture and quietly</h3>
+
+<p>
+I said that there were no degrees of <code class="cmd">quietly</code>.  That is not exactly true
+because <code class="cmd">capture</code> has much the same effect as a <code class="cmd">quietly</code> in that it,
+too, suppresses output.  In fact, <code class="cmd">capture</code> suppresses output with a
+vengeance.  Remember that
+</p>
+
+<pre class="codeblock"><code class="cmd">
+quietly ...
+</code></pre>
+
+<p>
+suppresses the output of ... except for any output that appears "as error"
+(red) or "as input" (white).
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture ...
+</code></pre>
+
+<p>
+suppresses all output.  <code class="cmd">quietly</code> suppresses all normal 
+output but not error messages.  <code class="cmd">capture</code> suppresses 
+everything, including the error messages, because, by virtue of coding a <code 
+class="cmd">capture</code>, you have indicated that you intend to handle the 
+error conditions yourself.  What appears as an error to Stata may not really be 
+an error.
+</p>
+
+<p>
+In a previous lecture, I coded 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture confirm string variable `varname'
+if _rc==0 { 
+      di as error "string variables not allowed"
+      exit 109
+}
+</code></pre>
+
+<p>
+<code class="cmd">confirm string variable `varname'</code> checks that <code 
+class="cmd">`varname'</code> is a string variable; if it is not, it issues an 
+error message and a nonzero return code.  In what I coded, however, that error 
+is not a real error; the real error is, in fact, when <code 
+class="cmd">confirm string variable `varname'</code> does not find an error.
+</p>
+
+<p>
+Anyway, the <code class="cmd">capture</code> in front handled the error-message problem.  The
+error message that <code class="cmd">confirm string variable</code> felt obligated to present was
+never displayed because <code class="cmd">capture</code> means more than <code class="cmd">quietly</code>; it
+suppresses messages displayed "as error" (red), too.
+</p>
+
+<p>
+Occasionally I have wanted to code <code class="cmd">capture</code> but wanted any error messages
+to be displayed.  I wanted to do this because I did not expect anything to go
+wrong, but if something did, I wanted the user to see the error message but I
+still wanted the opportunity to clean up after myself.  Just think
+about the question: "How could I make <code class="cmd">capture</code> display error messages?"
+</p>
+
+<p>
+The construct is
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture noisily ...
+</code></pre>
+
+<p>
+to have the benefits of <code class="cmd">capture</code>, and yet still have all the output 
+displayed that would normally be displayed.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="capture"></a>13. Capture blocks</h3>
+
+<p>
+The constructs <code class="cmd">capture quietly</code> and <code class="cmd">capture noisily</code> appear pretty
+strange.  They do not seem so strange when they are used in the context of a
+<code class="cmd">capture</code> block.  You have seen <code class="cmd">capture</code> used to prefix a single
+Stata command:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture ...
+if _rc ... {
+     ...
+}
+</code></pre>
+
+<p>
+<code class="cmd">capture</code> can similarly be used to prefix a group of Stata commands
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture { 
+     ...
+}
+if _rc!=0 ... {
+     ...
+}
+</code></pre>
+
+<p>
+The idea behind this is
+</p>
+
+<pre class="codeblock">
+<code class="cmd">capture {</code>
+     <span class="repl">group of commands that might fail</span>
+<code class="cmd">}</code>
+<code class="cmd">if _rc!=0 {</code>
+     <span class="repl">cleanup code</span>
+<code class="cmd">}</code>
+     <span class="repl">code if all well</span>
+</pre>
+
+<p>
+Let me show you an example in a program designed to create a new variable called
+<code class="cmd">result</code>.  <code class="cmd">result</code> is not a temporary variable, nor is it the name of
+a variable specified by the user.  This program creates a variable called
+<code class="cmd">result</code>, and let's assume that the program has already verified that the
+user has no variable named <code class="cmd">result</code> in the dataset.
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture { 
+     ...
+     generate result = ...
+     regress ...
+     replace result = ... if ...
+     ...
+}
+if _rc!=0 { 
+     local rc = _rc 
+     capture drop result
+     error `rc'
+}
+</code></pre>
+
+<p>
+The <code class="cmd">capture { ... }</code> is called a capture block.  All output from the
+statements in the block is suppressed, but that is not what is important.  If
+any statement should fail&#8212;for whatever reason, including the user pressing
+<span class="key">Break</span>&#8212;execution of the rest of the statements in the block is aborted, the
+nonzero return code is stored in <code class="cmd">_rc</code>, and control passes to the statement
+following the close brace of the block.  If the statements do not fail, they
+execute normally, and 0 is stored in <code class="cmd">_rc</code>.
+</p>
+
+<p>
+Thus, by the <code class="cmd">if _rc!=0</code> point, some or all of the statements in the block
+have been executed.  They have all been successfully executed <code class="cmd">if _rc==0</code>
+and statements were aborted otherwise.  The 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+if _rc!=0 { 
+     local rc = _rc 
+     capture drop result
+     error `rc'
+}
+</code></pre>
+
+<p>
+part of the code performs the clean up after failure.  In this example, if
+something went wrong, we might need to drop the variable <code class="cmd">result</code>.
+Variable <code class="cmd">result</code> may not have yet been created&#8212;depending on where
+the error occurred&#8212;so <code class="cmd">capture drop result</code> handles both cases.
+Since <code class="cmd">capture</code> resets <code class="cmd">_rc</code> and we want to exit our code with the
+same return code and error message that caused the problem in the first place,
+we save <code class="cmd">_rc</code> in the local macro <code class="cmd">`rc'</code> first and, afterwards, code
+<code class="cmd">error `rc'</code> to exit our program.
+</p>
+
+<p>
+Capture blocks used to play an important role in Stata programming but now,
+with the use of <code class="cmd">tempvar</code>, they play a lesser role.  Another way of
+coding the above problem would be
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempvar res
+quietly {
+     ...
+     generate `res' = ...
+     regress ...
+     replace `res' = ... if ...
+     ...
+}
+...
+rename `res' result
+</code></pre>
+
+<p>
+Using a temporary variable makes the problem easier to solve; if the program is
+stopped along the way, Stata itself will drop the variable.  Only at the end,
+when we are finished, do we rename the temporary variable to its final name.
+The <code class="cmd">tempvar</code> approach is probably better than the capture-block approach
+for this problem.
+</p>
+
+<p>
+Still, <code class="cmd">capture</code> blocks have their purpose.  If we must perform any
+clean up after failure, only a capture block will do.
+</p>
+
+<p>
+As an example, I wrote a complicated program that had many subroutines,
+and the subroutines used global macros as the primary way they communicated with
+each other.  Let's pretend that the command is called <code class="cmd">XYZ</code> and that its
+syntax is 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+XYZ varlist
+</code></pre>
+
+<p>
+Suppose also that many of my subroutines will need to access <code class="cmd">`varlist'</code>.
+One solution would be to pass as an argument <code class="cmd">`varlist'</code> to every program
+that needed it, but assume that I do not want to do that.  In the real case from
+which I am abstracting, that was exactly the issue.  I had lots of common
+information I needed to share among subroutines, and it was just too much for me
+to keep track of which routine needed what.
+</p>
+
+<p>
+Here was my program:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZ 
+     ...
+     capture noisily {
+          global XYZ_vl "`varlist'"
+          ...
+     }
+     global XYZ_vl 
+     exit _rc
+end
+</code></pre>
+
+<p>
+Notice I used a <code class="cmd">capture noisily</code> block.  The <code class="cmd">capture</code> captured the
+return code, and the <code class="cmd">noisily</code> undid the output suppression.  I put
+<code class="cmd">`varlist'</code> in the global macro <code class="cmd">$XYZ_vl</code>, and then, no matter how the
+program ended, I cleared <code class="cmd">XYZ_vl</code>.  My final statement was a mere <code class="cmd">exit
+_rc</code> because the error message, if any, had already been displayed due to the
+<code class="cmd">capture noisily</code>.  In most cases, there would be no error message and
+<code class="cmd">_rc</code> would be 0.  If something did go wrong, however, the error message
+would be displayed, but my program would not stop.  Instead, control would jump
+to the end of the capture block where I cleared the macro and then exited
+<code class="cmd">_rc</code>, this time with the appropriate nonzero return code.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="naming"></a>14. Naming conventions</h3>
+
+<p>
+I just said that I sometimes use global macros to communicate among my
+programs.  I use global macros to
+</p>
+
+<ol>
+<li>Expose common information for use by subroutines.  This common
+information is used only while the command is active and, once the
+command completes, becomes irrelevant.</li>
+
+<li>Keep information between different calls to the same command.</li>
+</ol>
+
+<p>
+Global macros have names that are globally exposed, and we programmers must
+agree on a convention so our global names do not conflict with one
+another.
+</p>
+
+<p>
+Moreover, the names of our programs themselves are globally exposed.  How do
+we ensure that I do not write a program called <code class="cmd">XYZ</code> and you do
+not write a similarly named program?
+</p>
+
+<p>
+The jargon for this problem is name collision, and the issue is how to
+minimize it.
+</p>
+
+<p>
+The first way we minimize name collision is by using as few global names as
+possible.  Whenever possible, follow these rules:
+</p>
+
+<ul>
+    <li>Use local macros instead of global macros.</li>
+
+    <li>Use <code class="cmd">tempname</code> to obtain names for scalars and matrices.</li>
+
+    <li>Use <code class="cmd">tempvar</code> to obtain names for variables.</li>
+
+    <li>Use <code class="cmd">tempfile</code> to obtain filenames.</li>
+
+    <li>Bury subroutines in the same ado-file.</li>
+</ul>
+
+<p>
+That is, using local variants whenever possible is the best solution because
+then it does not matter if we choose the same names; Stata can keep them
+straight.
+</p>
+
+<p>
+When local variants are not enough, there are conventions we should all follow
+to at least minimize the extent of the problem.
+</p>
+
+<p>
+Consider the two reasons for using global macros:
+</p>
+<ol>
+<li><code class="cmd">Exposing common information for use while the command is active</code>
+
+<p>
+Suppose that I am writing a complicated program to perform hierarchical stepwise
+estimation, and the ado-file contains lots of subroutines.  Say that I find it
+convenient to globally expose the following information: 
+</p>
+
+<pre class="codeblock">
+<code class="cmd">$HSW_dv</code>       the dependent variable
+
+<code class="cmd">$HSW_n  </code>      the number of possible RHS variables
+<code class="cmd">$HSW_1  </code>      the 1st possible RHS variable
+<code class="cmd">$HSW_2  </code>      the 2nd possible RHS variable
+...
+<code class="cmd">${HSW_$HSW_n} </code>the last possible RHS variable
+
+<code class="cmd">$HSW_if</code>       the (optional) <code class="cmd">if <span class="repl">exp</span></code>
+<code class="cmd">$HSW_in</code>       the (optional) <code class="cmd">in <span class="repl">range</span></code>
+</pre>
+
+<p>
+So I just do that, and I try to make my macro names unique by mixing
+capital and lowercase letters and including an underscore.  (I would not name
+a global macro, for instance, <code class="cmd">$IF</code> or <code class="cmd">$if</code>.)
+</p>
+
+<p>
+Understand that these macros are going to be defined only while my command is
+active; I have no intention of leaving these macros behind after my command
+completes.  Therefore, the first thing I need to do is find a way to clean
+up after myself.  I write a subroutine that will clear these macros:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">program ZapMacs</code>
+     <code class="cmd">global HSW_dv</code>                  /* dependent variable */
+     <code class="cmd">global HSW_if</code>                  /* optional if exp    */
+     <code class="cmd">global HSW_in</code>                  /* optional in range  */
+
+     <code class="cmd">forvalues i = 1/$HSW_n {</code>
+          <code class="cmd">global HSW_`i'</code>            /* `i'th RHS var      */
+     <code class="cmd">}</code>
+     <code class="cmd">global HSW_n    </code>               /* number of RHS      */
+<code class="cmd">end</code>
+</pre>
+
+<p>
+Now, I have a convenient way of clearing all the global macros&#8212;I just code
+<code class="cmd">ZapMacs</code>.  The <code class="cmd">ZapMacs</code> program is one of the first I include in my
+ado-file because it helps me keep track of the global macros I'm using.  When,
+as I am writing some other part of the code, I discover I need yet another
+global macro, I immediately jump down and modify <code class="cmd">ZapMacs</code> to both document
+it and clear it.
+</p>
+
+<p>
+Having <code class="cmd">ZapMacs</code>, I ensure that there is no way out of my main program by
+coding
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program hsw 
+     ...
+     global HSW_n 0
+     capture noisily { 
+     ...
+     }
+     local rc = _rc
+     ZapMacs
+     exit `rc'
+end
+</code></pre>
+
+<p>
+I do not like it when my programs get too indented, so my main program will
+quite probably read
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program hsw 
+     global HSW_n 0
+     capture noisily DoIt `0'
+     local rc = _rc 
+     ZapMacs
+     exit `rc'
+end
+</code></pre>
+
+<p>
+<code class="cmd">program DoIt</code> will contain my real code.  Note the <code class="cmd">global HSW_n 0</code>
+statement.  I had to include that because <code class="cmd">ZapMacs</code> needed <code class="cmd">HSW_n</code>
+defined, and things might go so wrong inside <code class="cmd">DoIt</code> that <code class="cmd">DoIt</code> never
+gets to the place where <code class="cmd">HSW_n</code> is defined.
+</p>
+
+<p>
+I prefer things to be more organized, and as I write this complicated hsw.ado
+file, other macros may need preliminary initialization.  Therefore, I write my
+code as
+</p>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE:<!-- change version # --><a href="../../courses/nc152-10/lec5/hsw.ado ">hsw.ado </a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+program hsw
+        InitMacs
+        capture noisily DoIt `0'
+        local rc = _rc
+        ZapMacs
+        exit `rc'
+end
+
+program InitMacs
+        global HSW_n 0
+end
+
+program ZapMacs
+        global HSW_dv                 /* dependent variable */
+        global HSW_if                 /* optional if exp    */
+        global HSW_in                 /* optional in range  */
+
+
+        forvalues i = 1/$HSW_n {
+               global HSW_`i'>        /* `i'th RHS var       */
+        }
+        global HSW_n                  /* number of RHS       */
+end
+
+program doit
+        /* yet to be written */
+end
+
+     </code> </pre></td> 
+</tr> 
+</table>
+</li>
+
+<li><code class="cmd">Keeping information between calls</code>
+
+<p>
+We are now writing systems of commands, and unless you are writing an
+estimation command, there is no good solution to the problem.
+</p>
+
+<p>
+For estimation commands, the solution is easy:  you store what you need in
+<code class="cmd">e()</code>.  Thus if I'm writing an estimation command, and one of the things I
+need to keep around is the r-squared, my estimation command reads 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program  <span class="repl">myest</span>, eclass
+     local options "Level(cilevel) ..."
+     if replay() {
+          if "`e(cmd)'" != "<span class="repl">myest</span>" { error 301 }
+               syntax [, `options']
+     }
+     else {
+          ...
+          ereturn scalar r2 = ...
+          ereturn local cmd "<span class="repl">myest</span>"
+     }
+     ...
+     display ... e(r2) ...
+     ...
+end
+</code></pre>
+
+<p>
+The name <code class="cmd">e(r2)</code> was my choice.  I could have just as
+well called it <code class="cmd">e(rsq)</code> or anything else.  <code
+class="cmd">e(r2)</code> is a better choice because other estimation commands
+also use that name, and users of my estimation command will probably expect to
+find it under that name.  If you are interested in naming conventions for saved
+results, read the section titled <!-- change manual --><span
+class="manual_entry">Recommended  names for saved results</span> in <span
+class="manual_entry">[P] return</span>.
+</p>
+
+<p>
+If the command system you were writing is not an estimation command, you are
+just going to have to choose unlikely names for the global macros you are
+using to pass information and hope no one else chose the same names.  In
+choosing these unlikely names, I offer the following guidelines:
+</p>
+
+<ol>
+<li>Do not choose a name that begins with the letters <code class="cmd">S_</code>.  Think of
+<code class="cmd">S_</code> as meaning system things or Stata things.  The S_ prefix has a
+special meaning to Stata, especially in Stata programs written under
+version 5 and older (before the introduction of <code class="cmd">r()</code> and <code class="cmd">e()</code>
+returned results). Many of these programs are still in use today.</li>
+
+<li>Do not choose a name that begins with an underscore (_).  Underscore
+also has special meaning to Stata.</li>
+</ol>
+
+<p>
+Other than that, any name is available to you.
+</p>
+</li>
+</ol>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="program"></a>15. Program-naming convention</h3>
+
+<p>
+The only other names that are globally exposed are the names of your programs
+themselves.  How do we avoid giving them the same name?
+</p>
+
+<p>
+The major problem is conflicting with a name used by StataCorp at some future
+date.  We are constantly developing Stata and introducing new commands.  To live
+with this "problem", we recommend the following:
+</p>
+
+<pre class="codeblock"><code class="cmd">   
+Never choose a nice name for your programs.  In particular, if
+the word you have in mind appears in a dictionary or is a common
+statistical term, do not use it for the name of your command.
+</code></pre>
+
+<p>
+I'm sorry, but that's what I recommend, and there is good reason for it.
+Everybody uses StataCorp commands, and the nice names should be reserved for the
+largest possible population.  Even inside StataCorp, programs have to earn good
+names.
+</p>
+
+<p>
+I am not suggesting that you name your ado-files <code class="cmd">xyzzy.ado</code>, I am
+suggesting merely that you do not name them <code class="cmd">table.ado</code>, <code class="cmd">search.ado</code>,
+<code class="cmd">decile.ado</code>, and the like; <code class="cmd">tbl.ado</code>, <code class="cmd">srch.ado</code>, and
+<code class="cmd">dec.ado</code> would be better choices.
+</p>
+
+<p>
+I suggest that you do not name your command using uppercase letters, because
+command names are reflected in ado-file names.  Unix respects case, but Windows
+and Macintosh do not.  So Unix users can adopt mixed case, but if they do, they
+will find it impossible to run their programs on Windows and Macintosh
+computers.
+</p>
+
+<p>
+Nevertheless, you have seen me use mixed case for command names in these
+lectures.  I use mixed case for the private subroutines inside an ado-file.
+Regardless of operating system, this causes Stata no problem, and I find it
+convenient.  I can look at a line and know whether the subroutine is in this
+file.  In my <code class="cmd">hsw.ado</code> example, I can look at the line
+</p>
+
+<pre class="codeblock"><code class="cmd">
+capture noisily DoIt `0'
+</code></pre>
+
+<p>
+and know that <code class="cmd">program DoIt</code> appears in the same
+ado-file.  It is just a personal convention.
+</p>
+
+<p>
+It's okay to use nice names for your private subroutines.  Those names are
+local, so there is no name-conflict issue.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="calling"></a>16. Calling convention</h3>
+
+<p>
+How do we pass arguments to our programs?  If you review the programs in the
+previous four lectures, here is what you will find:
+</p>
+
+<table class="standard">
+<tr>
+<td><pre class="cutout">
+Lecture 1 &amp; 2:
+         <code class="cmd">mytt.ado</code>, accepted standard Stata syntax
+                 <code class="cmd">tt_1</code>, accepted standard Stata syntax
+                 <code class="cmd">tt_2</code>, accepted standard Stata syntax
+                 <code class="cmd">tt_3</code>, accepted standard Stata syntax
+</pre>
+</td>
+</tr>
+
+<tr>
+<td><pre class="cutout">
+
+Lecture 3:
+         <code class="cmd">mytti.ado</code>, accepted immediate Stata syntax
+                  <code class="cmd">IsObs</code>   accepted positional arguments
+                  <code class="cmd">IsMean</code>  accepted positional arguments
+                  <code class="cmd">IsSd</code>    accepted positional arguments
+                  <code class="cmd">IsNull</code>  accepted positional arguments
+                  <code class="cmd">tt_1i</code>   accepted positional arguments
+                  <code class="cmd">tt_3i</code>   accepted positional arguments
+
+         <code class="cmd">group.ado</code>, accepted standard Stata syntax
+</pre></td>
+</tr>
+
+<tr>
+<td><pre class="cutout">
+
+Lecture 4:
+          "<code class="cmd">XYZ.ado</code>", accepted standard Stata syntax
+                  <code class="cmd">Estimate</code>  accepted standard Stata syntax
+                  <code class="cmd">Playback</code>  accepted standard Stata syntax
+           <code class="cmd">linreg.ado</code>, accepted standard Stata syntax
+
+           <code class="cmd">logisreg.ado</code>, accepted standard Stata syntax
+                  <code class="cmd">logisreg_l</code> accepted positional arguments
+</pre></td>
+</tr>
+</table>
+
+
+<p>
+There is a pattern here:  ado-files accept "standard" syntax&#8212;meaning they
+use <code class="cmd">syntax</code> to interpret what they receive&#8212;but subroutines sometimes
+use standard syntax and sometimes positional syntax.
+</p>
+
+<p>
+Subroutines are private&#8212;elegance in argument passing is not
+important&#8212;and you as a programmer should do what is convenient.  In fact,
+if you go back over the previous lectures carefully, you will find that in every
+case where a subroutine accepted standard syntax, the main program had not yet
+bothered to break down what was passed into its component pieces.  The main
+program called the subroutine using Stata syntax because it passed the argument
+<code class="cmd">`0'</code>.  The complete parsing had not yet been done.
+</p>
+
+<p>
+Once the parsing is complete, the subroutines I write tend to take positional
+arguments.  For instance, suppose that I am writing subroutine
+<code class="cmd">XYZsub</code>&#8212; a subroutine of <code class="cmd">XYZ</code> that will appear in
+<code class="cmd">XYZ.ado</code>&#8212;and it has three arguments:
+</p>
+
+<ol>
+<li> The name of a variable<br></li>
+<li> An optional <code class="cmd">if <span class="repl">exp</span></code><br></li>
+<li> The name of another variable to be created</li>
+</ol>
+
+<p>
+Here is how I might code <code class="cmd">XYZsub</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZsub
+     args invar if outvar
+     ...
+end
+</code></pre>
+
+<p>
+Here, in my main program, is how I might call it:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZ 
+     ...
+     tempvar result
+     XYZsub `1' `"`if'"' `result'
+     ...
+end
+</code></pre>
+
+<p>
+I want you to notice the double quotes around the <code class="cmd">`if'</code>:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">XYZsub `1' `"`if'"' `result'</code>
+             ^^^^^^^^
+</pre>
+
+<p>
+They are of vital importance.  Local macro <code class="cmd">`if'</code> might contain nothing,
+and if it did, the line would read
+</p>
+
+<pre class="codeblock">
+<code class="cmd">XYZsub `1' `""' `result'</code>
+</pre>
+
+<p>
+meaning <code class="cmd">`1'</code> is the first argument and <code class="cmd">`result'</code> is still the third.
+If I had omitted the double quotes, <code class="cmd">`result'</code> would have become the second
+argument, and <code class="cmd">XYZsub</code> would not have worked as intended.
+</p>
+
+<p>
+Including double quotes on positional arguments never hurts.  The line could
+just as well have been coded
+</p>
+
+<pre class="codeblock">
+<code class="cmd">XYZsub  `"`1'"'  `"`if'"'  `"`result'"'</code>
+</pre>
+
+<p>
+When an argument is not <span class="repl">nothing</span>, and when an argument does not itself
+contain blanks, the double quotes are not necessary.
+</p>
+
+<p>
+Next, I want you to notice how I coded <code class="cmd">XYZsub</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program XYZsub
+     args invar if outvar
+     ...
+end
+</code></pre>
+
+<p>
+All my subroutines that take positional arguments look like this:  they first
+unload the positional arguments into more readable names using the <code class="cmd">args</code>
+statement.  I could code my subroutines by referring to just <code class="cmd">`1', `2',</code>
+and <code class="cmd">`3'</code>, but if I do, I will probably make a mistake by referring to
+<code class="cmd">`3'</code> when I should be referring to <code class="cmd">`2'</code>.
+</p>
+
+<p>
+Using <code class="cmd">args</code> also makes it easier to add arguments later, should that be
+necessary.
+</p>
+
+<p>
+If you write subroutines that take positional arguments, I highly recommend
+that you follow this practice.
+</p>
+
+<p>
+Now, should you write subroutines that take positional arguments?  I find it
+convenient because it skips a step&#8212;that of laying out a syntax 
+diagram&#8212;when deciding what the syntax should be.  If I were coding
+<code class="cmd">XYZsub</code> using standard Stata syntax, should I make the syntax
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. XYZsub varname [if exp], gen(newvar)
+</code></pre>
+
+<p>
+or should I make it something else?  Since no one but me is ever going to see
+<code class="cmd">XYZsub</code>, I never address this issue.
+</p>
+
+<p>
+On the other hand, the minute I find a subroutine so useful that it is promoted
+out of the ado-file and into an ado-file of its own, I modify it to take
+standard syntax.  If some subroutine I write is generally useful&#8212;one I
+would like to use in other programs I write&#8212;then it deserves my
+considering how the syntax should be and the safety of standard syntax.
+(Positional arguments are inherently dangerous because, if you are off by one,
+things go awry.)
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="version"></a>17. Version control</h3>
+
+<p>
+Take a look at any of the real ado-files we write for Stata and you will
+discover that they all start pretty much the same way.  For instance,
+<code class="cmd">prtesti.ado</code> reads
+</p>
+
+<table class="standard">
+<tr>
+<th>ADO-FILE:<!-- change version # --><a href="../../courses/nc152-10/lec5/prtesti.ado">prtesti.ado</a></th> 
+</tr>
+
+<tr>
+<td><pre class="cutout"><code class="cmd">
+*! version 2.1.9  04sep2005
+program prtesti, rclass
+        version 5.0
+        ...
+</code></pre></td> 
+</tr> 
+</table>
+
+<p>
+I will explain the <code class="cmd">-*! version</code>...- line at the top, but let's start with
+the first line of the program:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+version 5.0
+</code></pre>
+
+<p>
+Every program you write should start with a version statement.  I omitted the
+line in all the examples because, today, it will not make any difference
+whether you include it or not and because I wanted the programs to be as short
+as possible so that they would fit on your screen.
+</p>
+
+<p>
+I should not have omitted the line.  Every program should
+have that line.  The <code class="cmd">version 5.0</code> line in <code class="cmd">prtesti.ado</code> tells Stata
+that this program was written and debugged under Stata 5.0.  Stata is constantly
+under development.  That line will tell future versions of Stata that, if there
+have been any changes to Stata's language that might break a Stata 5.0 program,
+it should temporarily undo those changes so that this program continues to work.
+It transfers responsibility for ensuring that your program continues to work
+with future versions of Stata from you to us.  Include the line.  And now, since
+the most recent version of Stata is 
+<!-- change version # --><code class="cmd">version 10.0</code>, you should include the
+line
+</p>
+
+<pre class="codeblock"><code class="cmd">
+<!-- change version # -->version 10.0
+</code></pre>
+
+<p>
+as the first line of your programs.
+</p>
+
+<p>
+The other line, 
+</p>
+
+<pre class="codeblock"><code class="cmd">
+*! version 2.1.9  04sep2005
+</code></pre>
+
+<p>
+is really just a comment.  All lines that start with <code class="cmd">*</code> are comments, but
+by starting with <code class="cmd">*!</code> it is a special kind of comment.  If you get into
+Stata and type <code class="cmd">which prtesti</code>, you will see something like
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. which prtesti
+<!-- change version -->/usr/local/stata10/ado/base/p/prtesti.ado
+*! version 2.2.2  17mar2005
+</code></pre>
+
+<p>
+<code class="cmd">which</code> tells you if an ado-file exists, and, if it exists, where it is
+located; it also displays any lines that start with the characters <code class="cmd">*!</code>.
+</p>
+
+<p>
+We use <code class="cmd">*!</code> to indicate when we wrote the program, although while I'm still
+developing a program, I will use <code class="cmd">*!</code> as a way of keeping notes as well.
+Right now, I'm developing a program called <code class="cmd">raz</code>:
+</p>
+
+<pre class="codeblock"><code class="cmd">
+. which raz
+./raz.ado
+*! version 1.0.0
+*!    bug:  "raz reg y x1-x4 x5" equivalent to "raz reg (x1-x4) x5"
+*!           fix it.
+</code></pre>
+
+<p>
+Use <code class="cmd">*!</code> or not as you see fit.
+</p>
+
+<p class = "right"><a href="#toc">Back to Table of Contents</a></p>
+<div class="section_div"></div>
+
+<h3><a name="conclusion"></a>18. Conclusion</h3>
+
+<p>
+Is there more to cover?  Certainly, but I do not think we have failed to cover
+anything that you will have trouble picking up on your own.  The manual does a
+good job of detailing what particular commands do; it does not show how the
+features work together, and that is what I have tried to focus on.
+</p>
+
+<p>
+If you want to be an advanced programmer of Stata or any other system, you must
+do two things:
+</p>
+
+<ul>
+<li>  Write programs.</li>
+
+<li>  Go back over your programs until they are beautiful.</li>
+</ul>
+
+<p>
+Step 2 is of vital importance.  In NC-151, I emphasized that, for most
+programming, it is enough that a program work.  It is not the tools that are
+used but step 2 that distinguishes advanced programming from application
+programming.
+</p>
+
+<p>
+An advanced program is not merely complex.  In fact, avoid unnecessary
+complexity.  An advanced program is one that you trust in all situations, and
+one that you can go back and modify without trepidation and fear.  I have shown
+how a program may not have a design at the outset, but it most certainly has one
+by the time it is completed.  It is the design&#8212;having components that do
+identifiable things and do them well&#8212;that makes an advanced program.
+</p>
+
+<p>
+People who write may well have larger vocabularies than the rest of us, but that
+is not what makes them good writers.  It is that they use the grammar well.
+That their vocabulary is large comes about as a natural consequence of often
+putting together words.
+</p>
+
+<p>
+I hope I have communicated the grammar of Stata and not just the vocabulary.
+</p>
+
+<div align="right"><a href="#toc">Back to Table of
+Contents</a></div>
+
+<div class="section_div"></div>
+
+<h3><a name="exercises"></a>19. Exercises</h3>
+
+<ol>
+<li>Write <code class="cmd">getrhs.ado</code>, syntax <code class="cmd">getrhs
+</code>, to return in <code class="cmd">r(rhs)</code> the names of the 
+independent variables from the most recently estimated model.  Assume that 
+<code class="cmd">getrhs</code> will be used only after single-equation models 
+such as <code class="cmd">regress</code>, <code class="cmd">logit</code>, and 
+<code class="cmd">probit</code>.
+
+<p>
+Hint:  the extended macro function <code class="cmd">colnames(<span class="repl">matname</span>)</code> returns the column names of a matrix or vector; see 
+<code class="cmd">help local</code>.  The coefficient vector after estimation 
+is <code class="cmd">e(b)</code>.  Because of an oddity of Stata, referring to 
+<code class="cmd">colnames(e(b)</code>) produces an error message.  You can,
+however, first copy the coefficient vector by coding
+</p>
+
+<pre class="codeblock"><code class="cmd">
+tempname b
+matrix `b' = e(b)
+</code></pre>
+
+<p>
+and then use <code class="cmd">`b'</code>.
+</p>
+
+<p>
+These column names will include <code class="cmd">_cons</code> if the model was 
+estimated with an intercept.  Stata's estimation commands, if they include 
+<code class="cmd">_cons</code>, always place <code class="cmd">_cons</code> 
+last.
+</p>
+</li>
+
+<li>Modify <code class="cmd">getrhs.ado</code> to add a <code class="cmd">used</code> option.  <code class="cmd">used</code> further
+edits the returned list to exclude variables dropped in estimation.
+
+<p>
+Hint:  make this determination based on the standard error <code 
+class="cmd">_se[]</code>.  Stata sets the recorded standard error to zero when 
+a variable is dropped.
+</p>
+</li>
+
+<li>Write <code class="cmd">todo.ado</code>.  The syntax is
+
+<pre class="codeblock">
+<code class="cmd">todo</code>                     lists everything you have to do
+<code class="cmd">todo add <span class="repl">text</span></code>          adds text to the list 
+<code class="cmd">todo done</code>                lists all tasks completed in the last 2
+                                weeks
+<code class="cmd">todo done #</code>              marks task # as done
+<code class="cmd">todo undone #</code>            marks task # as undone
+</pre>
+
+<p>
+<code class="cmd">todo</code> works by keeping a dataset of tasks.  The dataset contains
+</p>
+
+<table class="standard">
+<tr>
+        <td><code class="cmd">no</code></td>
+        <td>task number</td>
+</tr>
+
+<tr>
+        <td><code class="cmd">date</code></td>
+        <td>date task assigned</td>
+</tr>
+
+<tr>
+        <td><code class="cmd">text</code></td>
+        <td>text of task (up to 80 characters)</td>
+</tr>
+
+<tr>
+        <td><code class="cmd">done</code></td>
+        <td>date task done</td>
+</tr>
+
+</table>
+
+<p>
+This dataset should be called tasks.dta and should be  stored in a 
+location of your choosing.  For instance, on my Windows computer, I 
+decided to keep tasks.dta in <code>C:\ado</code>.
+</p>
+
+<p>
+Here is some output from a working todo:
+</p>
+
+<pre class="codeblock">
+<code class="cmd">. todo add do exercise 3 of lecture 5</code>
+
+<code class="cmd">. todo</code>
+1.  20feb2001  read nc-152 lecture 5
+2.  21feb2001  do exercise 3 of lecture 5
+
+<code class="cmd">. todo done 1</code>
+
+<code class="cmd">. todo</code> 
+2.  21feb2001  do exercise 3 of lecture 5
+
+<code class="cmd">. todo done</code>
+1.  20feb2001  21feb2001  read nc-152 lecture 5
+</pre>
+
+<p>
+Your program must address the following issues:
+</p>
+
+<ol>
+<li>The tasks.dta dataset should be created if it does not already exist.</li>
+
+<li>The tasks.dta dataset will become empty.</li>
+
+<li>Tasks should be removed after they have been completed for 2 weeks or
+more.</li>
+
+<li>Task numbers should not grow without bound.  Instead, as tasks are
+finally removed, they are to be recycled.  Thus, after a task has
+been used for a while, I might see the following output:
+
+<pre class="codeblock">
+<code class="cmd">. todo</code>
+2.  21feb2001  do exercise 3 of lecture 5
+1.  22feb2001  oil change on car
+9.  24feb2001  print all the lectures, get notebook
+3.  24feb2001  check out http://www.stata.com
+</pre>
+
+<p>
+Write your code so the next task number is 4.
+</p>
+</li>
+
+<li>Allow abbreviations of <code class="cmd">add</code>, <code class="cmd">done</code>, and <code class="cmd">undone</code>.
+<code class="cmd">add</code> may be specified as <code class="cmd">a</code>, <code class="cmd">ad</code>, or <code class="cmd">add</code>.  <code class="cmd">done</code>
+may be specified as <code class="cmd">d</code>, <code class="cmd">do</code>, <code class="cmd">don</code>, or <code class="cmd">done</code>.
+<code class="cmd">undone</code> may be specified as <code class="cmd">u</code>, <code class="cmd">und</code>, <code class="cmd">...</code>,
+<code class="cmd">undone</code>.</li>
+</ol>
+
+<p>
+Hint:  despite appearances, this is not a difficult problem.  It may seem
+artificial to you, but we at Stata actually use something similar to this and
+have found it very useful.
+</p>
+
+<p>
+Stata stores the current date in <code class="cmd">c(current_date)</code>.
+</p>
+
+<p>
+Do not let your inability to solve a particular problem prevent you from going
+forward with the task.  That is, you may not find a way to deal with the
+initialization event when <code>C:\ado\tasks.dta</code> (or whatever you call 
+it) does not exist.  Fine, create the dataset by hand and complete the exercise 
+otherwise.  Perhaps you cannot figure out how to keep task numbers from growing 
+without bound.  Fine, let them grow.  Complete the exercise and make a working 
+todo as well as you can.
+</p>
+
+<p>
+To set you on the path to producing an elegant, modifiable program, let me
+emphasize that my solution to this exercise involved many subroutines.  One of
+the programs in my ado file reads
+</p>
+
+<pre class="codeblock"><code class="cmd">
+program Add
+     if `"`0'"' == "" { 
+          di as error "syntax is  todo add <span class="repl">text</span>"
+          exit 198
+     }
+     preserve
+     UseData
+     GetNo
+     local no = r(next)
+
+     quietly {
+          local n = _N + 1 
+          set obs `n'
+          replace no = `no' in `n'
+          replace date = date("$S_DATE","dmy") in `n'
+          replace text = `"`0'"' in `n'
+     }
+     SaveData
+end
+</code></pre>
+</li>
+</ol>
+
+<!-- exercise NetCourseNow -->
+
+<div class="section_div"></div>
+
+<div class="center"><h2>End of Lecture 5</h2>
+</div>
+
+<div class="section_div"></div>
+
+<div class="center">
+
+<table class="nc4lec">
+
+<tr>
+<td class="nc4lec" colspan="7">
+<a href="../index.html" target="_top"
+onmouseover="homeb.src='../images/home-on.gif'"
+onmouseout="homeb.src='../images/home.gif'">
+<img src="../images/home.gif" alt="home" name="homeb" class="noborder">
+</a>
+</td>
+</tr>
+
+<tr>
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../basics.html" onmouseover="basicb.src='../images/basics-on.gif'" onmouseout="basicb.src='../images/basics.gif'">
+<!-- change NetCourseNow --><img src="../images/basics.gif" alt="Basics" name="basicb" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+
+<?php
+  include("../buttons.html");
+?>
+
+<!-- change NetCourseNow --><td class="nc4lec">
+<!-- change NetCourseNow --><a href="../messages/" onmouseover="dbutton.src='../images/discussion-on.gif'" onmouseout="dbutton.src='../images/discussion.gif'">
+<!-- change NetCourseNow --><img src="../images/discussion.gif" alt="Discussion" name="dbutton" class="noborder"></a>
+<!-- change NetCourseNow --></td>
+</tr>
+
+<tr>
+<td class="nc4lec" colspan="7">
+<img src="../images/lectureh.gif" alt="Lecture">
+</td>
+</tr>
+
+</table>
+</div>
+
+<p class="right"><a href="../copyright.html">&copy; Copyright 2008 StataCorp LP.
+</a></p>
+
+</body>
+</html>
