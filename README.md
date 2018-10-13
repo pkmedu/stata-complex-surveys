@@ -1,2 +1,2 @@
 # Stata-programs-cs
-The Stata programs were written by Pradip Muhuri except those in the training folder.
+The Stata programs (except those in the training folders) were written by Pradip Muhuri.
